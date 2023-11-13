@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+
+#
+# wrapper script for osst
+#
+venv_name="./venv"
+
+if [ ! -d $venv_name ]; then
+    echo "Virtualenv doesn't seem to exist - creating it."
+    ./setup.sh $venv_name
+fi
+
+# disable support prompt
+export PYGAME_HIDE_SUPPORT_PROMPT=1
+export OPENCV_LOG_LEVEL=OFF
+# redirect error to dev null, as some webcams stram warnings
+$venv_name/bin/python ./osst.py $*  #2>/dev/null
+
+
+
+
