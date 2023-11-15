@@ -4,6 +4,7 @@ import math
 import pygame
 
 # import numpy
+from . import lines
 
 TARGET_BGCOL = "#ffffff"
 TARGET_FGCOL = "#000000"

@@ -7,32 +7,31 @@
 # V  Y
 
 # ------- IMPORTS -------
+# standard library imports
 from datetime import datetime
 from signal import signal, SIGINT, SIGABRT, SIGTERM
 import argparse
-
 import numpy as np
 import os
-import cv2
-
-import wave
 import sys
-
-# import pyaudio
-import struct
 import math
+
+# third party imports
+import cv2
 import pygame
 
-
+# local imports
 import _version
 from classes.target import *
 from classes import camera
 from classes import tracker
+from classes.lines import vec2d
 
-# --------- CONSTANTS ---------
 WEBCAM_INTERNAL = 0
 WEBCAM_EXTERNAL = 4
-WEBCAM_EXTERNAL_2 = 6
+WEBCAM_OSST_FIRST = 4
+WEBCAM_OSST_SECOND = 6
+
 
 # script version
 VERSION = _version.__version__
@@ -46,162 +45,102 @@ EXIT_NO_CAMERA = 1
 EXIT_MSG = [None, "Cannot read from Camera. Camera ID ok?"]
 
 # -- webcam stuff
-WEBCAM_ID = WEBCAM_EXTERNAL_2
 
-# WEBCAM_WIDTH = 1920
-# WEBCAM_HEIGHT = 1080
-# WEBCAM_HEIGHT = 540
-# WEBCAM_ZOOM_FACTOR = 1  # doesn't seem to do anything
-# WEBCAM_FPS = 30
+WEBCAM_CROP_WIDTH = 700
+WEBCAM_CROP_HEIGHT = 700
 
-WEBCAM_CROP_WIDTH = 400
-WEBCAM_CROP_HEIGHT = 400
+WEBCAM_SETTINGS_INTERNAL = [1920, 1680, 30, 1, "MJPG", 0, 32000]
+WEBCAM_SETTINGS_EXTERNAL = [1920, 1680, 30, 1, "MJPG", 5, 32000]
+WEBCAM_SETTINGS_OSST_DEV = [1280, 960, 30, 2, "MJPG", 8, 48000]
 
-# webcam info indexes
+# SETTINGS - To change here
+WEBCAM_ID = WEBCAM_EXTERNAL
+WEBCAM_SETTINGS = WEBCAM_SETTINGS_EXTERNAL
+
+# webcam settings indexes
 CAM_SETTINGS_WIDTH = 0
 CAM_SETTINGS_HEIGHT = 1
 CAM_SETTINGS_FPS = 2
 CAM_SETTINGS_ZOOM = 3
 CAM_SETTINGS_CODEC = 4
 CAM_SETTINGS_MIC_ID = 5
+CAM_SETTINGS_MIC_SAMPLE_RATE = 6
 
 # --- cv2 stuff
 CV2_VIDEO_BACKEND = cv2.CAP_V4L2
 
-
 # --- target
+# using a string to legacy reasons
+# ToDo: change
 TARGET_TYPE = "lg"  # lg / lp
-TARGET_SIZE = 1000
 
 # radius of the black area of the target (in mm/100)
+# ToDo: get that from target
 BLACK_RAD_LP = 2975
 BLACK_RAD_LG = 1275
 
 # --- behaviour
 HISTORY_SECONDS = 10
+
+# initial window dimensions
 WINDOW_DIMENSIONS = (1640, 1000)
 
 
-def compute_bezier_points(vertices, numPoints=None):
-    #    print(len(vertices))
-    #    print(f"vertices: {vertices}")
-    if numPoints is None:
-        numPoints = 30
-    if numPoints < 2 or len(vertices) != 3:
-        return None
-
-    result = []
-
-    b0x = vertices[0][0]
-    b0y = vertices[0][1]
-    b1x = vertices[1][0]
-    b1y = vertices[1][1]
-    b2x = vertices[1][0]
-    b2y = vertices[1][1]
-    b3x = vertices[2][0]
-    b3y = vertices[2][1]
-
-    # Compute polynomial coefficients from Bezier points
-    ax = -b0x + 3 * b1x + -3 * b2x + b3x
-    ay = -b0y + 3 * b1y + -3 * b2y + b3y
-
-    bx = 3 * b0x + -6 * b1x + 3 * b2x
-    by = 3 * b0y + -6 * b1y + 3 * b2y
-
-    cx = -3 * b0x + 3 * b1x
-    cy = -3 * b0y + 3 * b1y
-
-    dx = b0x
-    dy = b0y
-
-    # Set up the number of steps and step size
-    numSteps = numPoints - 1  # arbitrary choice
-    h = 1.0 / numSteps  # compute our step size
-
-    # Compute forward differences from Bezier points and "h"
-    pointX = dx
-    pointY = dy
-
-    firstFDX = ax * (h * h * h) + bx * (h * h) + cx * h
-    firstFDY = ay * (h * h * h) + by * (h * h) + cy * h
-
-    secondFDX = 6 * ax * (h * h * h) + 2 * bx * (h * h)
-    secondFDY = 6 * ay * (h * h * h) + 2 * by * (h * h)
-
-    thirdFDX = 6 * ax * (h * h * h)
-    thirdFDY = 6 * ay * (h * h * h)
-
-    # Compute points at each step
-    result.append((int(pointX), int(pointY)))
-
-    for i in range(numSteps):
-        pointX += firstFDX
-        pointY += firstFDY
-
-        firstFDX += secondFDX
-        firstFDY += secondFDY
-
-        secondFDX += thirdFDX
-        secondFDY += thirdFDY
-
-        result.append((int(pointX), int(pointY)))
-
-    return result
-
-
 class Osst:
-    '''
+    """
     Main object and busiess logic
-    '''
+    """
+
     def __init__(self):
         # graceful exit when killed
         signal(SIGTERM, self._catch_signal)
         signal(SIGINT, self._catch_signal)
         signal(SIGABRT, self._catch_signal)
 
-        self.window_dimensions = WINDOW_DIMENSIONS
-
         # webcam settings: width/height/fps/zoom
         # ToDo: Find a better way to do this
-        self._cam_settings = [
-            [1920, 1680, 30, 1, "MJPG", 0],
-            None,
-            None,
-            None,
-            [1920, 1680, 30, 1, "MJPG", 2],
-            None,
-            [1280, 960, 30, 2, "MJPG", 0],
-        ]
+        # self._cam_settings = [
+        #     [1920, 1680, 30, 1, "MJPG", 0],
+        #     None,
+        #     None,
+        #     None,
+        #     [1920, 1680, 30, 1, "MJPG", 2],
+        #     None,
+        #     [1280, 960, 30, 2, "MJPG", 8],
+        # ]
 
         self.exit_reason = EXIT_SUCCESS
 
         # init pygame and open the window
         pygame.init()
         pygame.display.set_caption("Open Sport Shooting Tracker")
-        self.screen = pygame.display.set_mode(self.window_dimensions)
+        self.screen = pygame.display.set_mode(WINDOW_DIMENSIONS)
 
         # set up camera
         # ToDo: should that go into the Camera object instead?
+
         self.camera = camera.Camera(
             WEBCAM_ID,
             cv2.CAP_V4L2,
-            self._cam_settings[WEBCAM_ID][CAM_SETTINGS_WIDTH],
-            self._cam_settings[WEBCAM_ID][CAM_SETTINGS_HEIGHT],
-            self._cam_settings[WEBCAM_ID][CAM_SETTINGS_ZOOM],
-            self._cam_settings[WEBCAM_ID][CAM_SETTINGS_FPS],
-            self._cam_settings[WEBCAM_ID][CAM_SETTINGS_CODEC],
-            self._cam_settings[WEBCAM_ID][CAM_SETTINGS_MIC_ID],
+            WEBCAM_SETTINGS[CAM_SETTINGS_WIDTH],
+            WEBCAM_SETTINGS[CAM_SETTINGS_HEIGHT],
+            WEBCAM_SETTINGS[CAM_SETTINGS_ZOOM],
+            WEBCAM_SETTINGS[CAM_SETTINGS_FPS],
+            WEBCAM_SETTINGS[CAM_SETTINGS_CODEC],
+            WEBCAM_SETTINGS[CAM_SETTINGS_MIC_ID],
+            WEBCAM_SETTINGS[CAM_SETTINGS_MIC_SAMPLE_RATE],
         )
 
         # set up target image
-        self.target_size = TARGET_SIZE
-        self.target = Target(self.target_size, TARGET_TYPE)
+        win_width, win_height = pygame.display.get_surface().get_size()
+        self.target = Target(win_height, TARGET_TYPE)
         self.target_center = None
 
         # draw target image
         self.target_frame = self.target.draw()
 
         self.keep_running = True
+        self.pause_capture = False
 
         self.clock = pygame.time.Clock()
         self.starttime = datetime.now()
@@ -216,11 +155,7 @@ class Osst:
         self.tracker = tracker.Tracker(HISTORY_SECONDS, int(actual_fps))
 
         # setting target scale for the  tracker
-        #        if TARGET_TYPE == "lg":
         self.tracker.set_target_scale(self.target.get_black_radius() / 2)
-
-    #        else:
-    #            self.tracker.set_target_scale(BLACK_RAD_LP)
 
     def _catch_signal(self, sig, frame):
         """
@@ -234,24 +169,24 @@ class Osst:
             self.quit(0)
 
     def quit(self, retval=0):
-        ''' graceful exit '''
+        """graceful exit"""
         self.camera.quit()
         pygame.quit()
         sys.exit(0)
 
     def get_text_box(self, mystring, font_size=20, color=(255, 0, 255)):
-        ''' return text '''
+        """return text"""
         font = pygame.font.Font("freesansbold.ttf", font_size)
         text_surf = font.render(mystring, True, color)
         return text_surf
 
     def get_scaled_surface(self, frame, dimensions):
-        ''' scale and return surface '''
+        """scale and return surface"""
         pygame_frame = pygame.surfarray.make_surface(frame)
         return pygame.transform.scale(pygame_frame, dimensions)
 
     def draw_center(self, frame, scale=1):
-        ''' display the logical center point of the camera '''
+        """display the logical center point of the camera"""
         if self.target_center is None:
             return
         x, y = self.target_center
@@ -277,7 +212,7 @@ class Osst:
         return frame
 
     def draw(self):
-        ''' Draw routine, executed on every frame '''
+        """Draw routine, executed on every frame"""
         #
         # +----...----+---...---+
         # |    ...    | camwin1 |
@@ -288,6 +223,9 @@ class Osst:
         # |    ...    +---...---+
         # |    ...    | dbg info|
         # +----...----+---...---+
+
+        # get window size
+        win_width, win_height = pygame.display.get_surface().get_size()
 
         # ---- MAIN TARGET WINDOW
         # target as background
@@ -338,60 +276,20 @@ class Osst:
                 (1000, 400),
             )
 
+        maxlen = win_height // 8
+
         # --- movements
         allpos = self.tracker.get_all_positions(scaled=True)
-        #        print(allpos)
-        maxlen = TARGET_SIZE // 8
-        #        print(len(allpos), allpos)
-        #        print(self.tracker.pos)
-        #        if len(allpos) > 3:
+        if len(allpos) > 5:
+            l = lines.Lines(allpos)
+            # origin
+            l.set_origin(vec2d(500, 500))
+            # color
+            l.set_line_len_color_gradient((0, 255, 0), (255, 0, 0), maxlen)
 
-        #            print(allpos[0], allpos[1], allpos[-1])
-        if len(allpos) > 4:
-            for i in range(1, len(allpos) - 1):
-                b_source = [
-                    (
-                        allpos[i - 1][0] + TARGET_SIZE // 2,
-                        allpos[i - 1][1] + TARGET_SIZE // 2,
-                    ),
-                    (
-                        allpos[i][0] + TARGET_SIZE // 2,
-                        allpos[i][1] + TARGET_SIZE // 2,
-                    ),
-                    (
-                        allpos[i + 1][0] + TARGET_SIZE // 2,
-                        allpos[i + 1][1] + TARGET_SIZE // 2,
-                    ),
-                ]
-                bezier_points = compute_bezier_points(b_source)
-                #                print(type(bezier_points), bezier_points)
-                pygame.draw.lines(
-                    self.screen,
-                    #                (0, (min(line_len_square, maxlen_square) / maxlen_square) * 255, 0),
-                    (150, 150, 150),
-                    False,
-                    bezier_points,
-                    #                (x1, y1),
-                    #                (x2, y2),
-                    1,
-                )
-        for i in range(1, len(allpos)):
-            x1 = allpos[i - 1][0] + TARGET_SIZE // 2
-            y1 = allpos[i - 1][1] + TARGET_SIZE // 2
-            x2 = allpos[i][0] + TARGET_SIZE // 2
-            y2 = allpos[i][1] + TARGET_SIZE // 2
-
-            line_len = ((x1 - x2) ** 2 + (y1 - y2) ** 2) ** 0.5
-            linecol = int(min(line_len, maxlen) / maxlen * 255)
-
-            pygame.draw.line(
-                self.screen,
-                #                (0, (min(line_len_square, maxlen_square) / maxlen_square) * 255, 0),
-                (linecol, 255 - linecol, 0),
-                (x1, y1),
-                (x2, y2),
-                3,
-            )
+            # draw
+            l.draw_lines(self.screen, thickness=3)
+            # l.draw_curve(self.screen, thickness=3)
 
         # ---- DEBUG WINDOW
         # clean background winddow - quick and expensive hack, surface should be done cheaper and more efficient
@@ -437,14 +335,14 @@ class Osst:
         pygame.display.update()
 
     def prep_exit(self, retval=0):
-        """ exit mainloop with certain return value and message """
+        """exit mainloop with certain return value and message"""
         if retval > 0:
             print(f"ERROR: {EXIT_MSG[retval]}")
         self.exit_reason = retval
         self.keep_running = False
 
     def handle_events(self):
-        """ event handler """
+        """event handler"""
         for event in pygame.event.get():
             # key events
             if event.type == pygame.KEYDOWN:
@@ -479,7 +377,8 @@ class Osst:
                         self.camera.hough_param1 += 2
                 # reset camera
                 elif event.key == pygame.K_SPACE:
-                    self.tracker.reset()
+                    # self.tracker.reset()
+                    self.pause_capture = not self.pause_capture
                 # blur pre-processing
                 elif event.key == pygame.K_b:
                     self.camera.blur = not self.camera.blur
@@ -522,12 +421,13 @@ class Osst:
                 print("Shot detected!")
 
             # read cameras
-            if self.crop:
-                cam_read_success = self.camera.read(
-                    (WEBCAM_CROP_WIDTH, WEBCAM_CROP_HEIGHT)
-                )
-            else:
-                cam_read_success = self.camera.read()
+            if not self.pause_capture:
+                if self.crop:
+                    cam_read_success = self.camera.read(
+                        (WEBCAM_CROP_WIDTH, WEBCAM_CROP_HEIGHT)
+                    )
+                else:
+                    cam_read_success = self.camera.read()
 
             if not cam_read_success:
                 self.prep_exit(EXIT_NO_CAMERA)
@@ -542,12 +442,6 @@ class Osst:
                     y = self.target_center[1] - self.camera.target_pos[1]
                     #                    print(self.target_center, self.camera.target_pos, [x, y])
                     self.tracker.add_position([x, y])
-                    print(
-                        [x, y],
-                        self.target_center,
-                        self.camera.target_pos,
-                        self.camera.target_radius,
-                    )
 
                 #                    print(self.tracker.get_current_position())
                 detected_counter += 1
@@ -569,9 +463,6 @@ class Osst:
                 fail_counter = 0
 
         self.quit()
-
-
-
 
 
 def parse_args():
@@ -605,7 +496,6 @@ def parse_args():
 
 
 def main():
-
     # get cmd line args
     args = parse_args()
     if args.version:
@@ -614,7 +504,7 @@ def main():
     # init main object
     osst = Osst()
     osst.mainloop()
-    
+
     # mainloop should exit gracefully
 
 

@@ -3,4 +3,5 @@ opencv-python
 # audio
 pyaudio
 numpy
+scipy
 

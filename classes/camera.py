@@ -1,14 +1,16 @@
+# standard imports
 import os
+import numpy as np
+import struct
+import math
 
+# third party imports
 # for image recognition
 import cv2
-import numpy as np
 from pygame import time
 
 # for audio shot detection
 import pyaudio
-import struct
-import math
 
 GRAY_THRESHOLD = 150
 CANNY_THRESHOLD1 = 50
@@ -24,8 +26,8 @@ TARGET_CIRCLE_WIDTH = 4
 DETECTION_THRESHOLD = 0
 DETECTION_EDGE = 1
 
-USE_MIC = False
-MIC_AUDIO_RATE = 32000
+USE_MIC = True
+MIC_AUDIO_RATE = 48000
 MIC_AUDIO_CHUNK = 1024
 MIC_AUDIO_FORMAT = pyaudio.paInt16
 MIC_NUM_CHANNELS = 1
@@ -34,7 +36,8 @@ MIC_TRIGGER_VOLUME_THRESHOLD = 0.2
 
 
 class Camera:
-    ''' handles USB camera video capture, object recognition and microphone'''
+    """handles USB camera video capture, object recognition and microphone"""
+
     def __init__(
         self,
         webcam_id=0,
@@ -45,10 +48,11 @@ class Camera:
         fps=30,
         codec="MJPG",
         mic_id=0,
+        mic_sample_rate=MIC_AUDIO_RATE,
     ):
         # microphone
         if USE_MIC:
-            self.mic = CamMicrophone(mic_id)
+            self.mic = CamMicrophone(mic_id, mic_sample_rate)
             print(self.mic.get_device_names())
         # raw image taken from cam
         self.raw_frame = None
@@ -81,7 +85,7 @@ class Camera:
         self.target_radius = None
 
         # detection method
-        self.detect_method = DETECTION_THRESHOLD
+        self.detect_method = DETECTION_EDGE
         # blur grey image (for both methods)
         self.blur = True
         # threshold stuff
@@ -97,11 +101,11 @@ class Camera:
         self.hough_param2 = 60
 
     def get_fps(self):
-        """ get real fps from camera"""
+        """get real fps from camera"""
         return self.cam.get(cv2.CAP_PROP_FPS)
 
     def quit(self):
-        """ close camera object """
+        """close camera object"""
         # let's see if that helps with the defunct usb devices on abort
         self.cam.release()
 
@@ -117,11 +121,12 @@ class Camera:
         #        print(type(crop_size))
 
         self.raw_frame = cv2.cvtColor(self.raw_frame, cv2.COLOR_BGR2RGB)
-        self.raw_frame = np.rot90(self.raw_frame)
+        self.raw_frame = np.rot90(self.raw_frame, 1)
+        self.raw_frame = np.flip(self.raw_frame, 1)
         return True
 
     def crop_frame(self, frame, crop_size):
-        """ crop frame centrally to a certain size """
+        """crop frame centrally to a certain size"""
         start_x = (self.width - crop_size[0]) // 2
         start_y = (self.height - crop_size[1]) // 2
         # crop the image (be aware of the x/y sequence)
@@ -147,11 +152,11 @@ class Camera:
             return True
 
     def get_target(self):
-        """ get detected target pos and size"""
+        """get detected target pos and size"""
         return self.target_pos, self.target_radius
 
     def detect_circles(self):
-        """ detect the target on ine grabbed image"""
+        """detect the target on ine grabbed image"""
         # ToDo: rename?
         # convert img to grayscale
         self.gray_frame = cv2.cvtColor(self.raw_frame, cv2.COLOR_RGB2GRAY)
@@ -197,7 +202,7 @@ class Camera:
         return False
 
     def detect_shot_triggered(self):
-        """ listen to the microphone and return True if a shot is thought to be fired"""
+        """listen to the microphone and return True if a shot is thought to be fired"""
         if USE_MIC:
             return self.mic.shot_detected()
         return False
@@ -205,19 +210,18 @@ class Camera:
 
 class CamMicrophone:
     """access camera microphone"""
-    
-    #ToDo: Everything, doesn't work well at all
-    
 
-    def __init__(self, mic_id=0):
-        # this throws errors on STDERR. 
+    # ToDo: Everything, doesn't work well at all
+
+    def __init__(self, mic_id=0, sample_rate=MIC_AUDIO_RATE):
+        # this throws errors on STDERR.
         self.mic = pyaudio.PyAudio()
         self.get_device_names()
         print(mic_id, MIC_NUM_CHANNELS)
         self.audio_stream = self.mic.open(
             format=MIC_AUDIO_FORMAT,
             channels=MIC_NUM_CHANNELS,
-            rate=MIC_AUDIO_RATE,
+            rate=sample_rate,
             input=True,
             frames_per_buffer=MIC_AUDIO_CHUNK,
             input_device_index=mic_id,
@@ -225,7 +229,7 @@ class CamMicrophone:
         self.last_call = time.get_ticks()
 
     def get_device_names(self):
-        """ get audio device names """
+        """get audio device names"""
         # assuming host_api=0 as default (should be ALSA)
         host_api_id = 0
 
@@ -233,7 +237,7 @@ class CamMicrophone:
         print("Host Api info:")
 
         for i in range(num_devices):
-#            print(self.mic.get_device_info_by_index(i))
+            #            print(self.mic.get_device_info_by_index(i))
             # if input is possible
             if (
                 self.mic.get_device_info_by_host_api_device_index(host_api_id, i).get(
@@ -241,9 +245,7 @@ class CamMicrophone:
                 )
             ) > 0:
                 print(
-                    i,
-                    self.mic.get_device_info_by_host_api_device_index(host_api_id, i)["name"],
-                    self.mic.get_device_info_by_host_api_device_index(host_api_id, i)["maxInputChannels"]
+                    i, self.mic.get_device_info_by_host_api_device_index(host_api_id, i)
                 )
 
     # https://stackoverflow.com/questions/36413567/pyaudio-convert-stream-read-into-int-to-get-amplitude
