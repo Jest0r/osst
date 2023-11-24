@@ -1,0 +1,6 @@
+make target scalable
+displaz the whole lit up area
+Vorschau perspektivisch korrekt
+qukck rotate
+scaling ohne numpad tasten moeglich
+save reference center

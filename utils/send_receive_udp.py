@@ -3,7 +3,8 @@ import sys
 import time
 
 UDP_IP = "127.0.0.1"
-UDP_PORT = 5005
+# DISAG port: 30169
+UDP_PORT = 30169
 MESSAGE = b"Hello, World!"
 
 

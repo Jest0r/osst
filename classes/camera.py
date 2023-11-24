@@ -18,8 +18,8 @@ CANNY_THRESHOLD2 = 100
 
 HOUGH_MIN_DISTANCE = 500
 
-TARGET_MIN_RADIUS = 20
-TARGET_MAX_RADIUS = 40
+TARGET_MIN_RADIUS = 10
+TARGET_MAX_RADIUS = 25
 
 TARGET_CIRCLE_WIDTH = 4
 
@@ -121,7 +121,7 @@ class Camera:
         #        print(type(crop_size))
 
         self.raw_frame = cv2.cvtColor(self.raw_frame, cv2.COLOR_BGR2RGB)
-        self.raw_frame = np.rot90(self.raw_frame, 1)
+#        self.raw_frame = np.rot90(self.raw_frame, 1)
         self.raw_frame = np.flip(self.raw_frame, 1)
         return True
 
@@ -171,6 +171,12 @@ class Camera:
         if self.detect_method == DETECTION_THRESHOLD:
             ret, self.thresh_frame = cv2.threshold(
                 self.gray_frame, self.gray_threshold, 255, cv2.THRESH_BINARY
+            )
+            self.thresh_frame = cv2.Canny(
+                # image=self.gray_frame, threshold1=50, threshold2=200
+                image=self.thresh_frame,
+                threshold1=self.canny_threshold1,
+                threshold2=self.canny_threshold2,
             )
         else:
             self.thresh_frame = cv2.Canny(

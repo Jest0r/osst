@@ -46,16 +46,17 @@ EXIT_MSG = [None, "Cannot read from Camera. Camera ID ok?"]
 
 # -- webcam stuff
 
-WEBCAM_CROP_WIDTH = 700
+WEBCAM_CROP_WIDTH = 1000
 WEBCAM_CROP_HEIGHT = 700
 
 WEBCAM_SETTINGS_INTERNAL = [1920, 1680, 30, 1, "MJPG", 0, 32000]
 WEBCAM_SETTINGS_EXTERNAL = [1920, 1680, 30, 1, "MJPG", 5, 32000]
 WEBCAM_SETTINGS_OSST_DEV = [1280, 960, 30, 2, "MJPG", 8, 48000]
+#WEBCAM_SETTINGS_OSST_DEV = [960, 720, 30, 2, "MJPG", 8, 48000]
 
 # SETTINGS - To change here
-WEBCAM_ID = WEBCAM_EXTERNAL
-WEBCAM_SETTINGS = WEBCAM_SETTINGS_EXTERNAL
+WEBCAM_ID = 0
+WEBCAM_SETTINGS = WEBCAM_SETTINGS_OSST_DEV
 
 # webcam settings indexes
 CAM_SETTINGS_WIDTH = 0
@@ -240,6 +241,7 @@ class Osst:
 
         # display circles
         pos, rad = self.camera.get_target()
+        print(pos)
 
         if pos is not None:
             x = int(pos[0] * 400 / WEBCAM_CROP_WIDTH)

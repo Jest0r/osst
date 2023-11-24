@@ -61,6 +61,7 @@ class Target:
         #        self.screen = pygame.display.set_mode((self.width, self.height), depth=32)
 
         self.shots = []
+        self.scale_factor = 1
 
         if self.disktype == "lp":
             self.max_scale = LP_SCALE
@@ -78,6 +79,9 @@ class Target:
             self.bgcol = LG_BGCOL
             self.text = LG_TEXT
 
+    def set_scale_factor(self, factor):
+        self.scale_factor = factor
+        
     def draw(self):
         self.surf = pygame.Surface((self.width, self.height))
 
