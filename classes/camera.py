@@ -12,6 +12,7 @@ from pygame import time
 # for audio shot detection
 import pyaudio
 
+
 GRAY_THRESHOLD = 150
 CANNY_THRESHOLD1 = 50
 CANNY_THRESHOLD2 = 100
@@ -32,7 +33,8 @@ MIC_AUDIO_CHUNK = 1024
 MIC_AUDIO_FORMAT = pyaudio.paInt16
 MIC_NUM_CHANNELS = 1
 MIC_SHORT_NORMALIZE = 1.0 / 32768.0
-MIC_TRIGGER_VOLUME_THRESHOLD = 0.2
+# auf stand 11 ca 0.70 - 0.79. Pistole auf Stand 3 wird nicht gehoert
+MIC_TRIGGER_VOLUME_THRESHOLD = 0.65
 
 
 class Camera:
@@ -121,7 +123,7 @@ class Camera:
         #        print(type(crop_size))
 
         self.raw_frame = cv2.cvtColor(self.raw_frame, cv2.COLOR_BGR2RGB)
-#        self.raw_frame = np.rot90(self.raw_frame, 1)
+        self.raw_frame = np.rot90(self.raw_frame, 1)
         self.raw_frame = np.flip(self.raw_frame, 1)
         return True
 
@@ -286,6 +288,7 @@ class CamMicrophone:
         # get mic threshold
         rms = self.get_rms(achunk)
         if rms > MIC_TRIGGER_VOLUME_THRESHOLD:
+            print(rms)
             return True
 
         return False
