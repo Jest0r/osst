@@ -26,6 +26,7 @@ from classes.target import *
 from classes import camera
 from classes import tracker
 from classes.lines import vec2d
+from classes import disag
 
 WEBCAM_INTERNAL = 0
 WEBCAM_EXTERNAL = 4
@@ -51,12 +52,14 @@ WEBCAM_CROP_HEIGHT = 700
 
 WEBCAM_SETTINGS_INTERNAL = [1920, 1680, 30, 1, "MJPG", 0, 32000]
 WEBCAM_SETTINGS_EXTERNAL = [1920, 1680, 30, 1, "MJPG", 5, 32000]
-WEBCAM_SETTINGS_OSST_DEV = [1280, 960, 30, 2, "MJPG", 8, 48000]
+WEBCAM_SETTINGS_OSST_DEV = [1280, 960, 30, 2, "MJPG", 5, 48000]
 #WEBCAM_SETTINGS_OSST_DEV = [960, 720, 30, 2, "MJPG", 8, 48000]
 
 # SETTINGS - To change here
 WEBCAM_ID = 0
 WEBCAM_SETTINGS = WEBCAM_SETTINGS_OSST_DEV
+
+
 
 # webcam settings indexes
 CAM_SETTINGS_WIDTH = 0
@@ -131,6 +134,9 @@ class Osst:
             WEBCAM_SETTINGS[CAM_SETTINGS_MIC_ID],
             WEBCAM_SETTINGS[CAM_SETTINGS_MIC_SAMPLE_RATE],
         )
+
+        self.disag_server = disag.DisagServer()
+        self.disag_server.listen()
 
         # set up target image
         win_width, win_height = pygame.display.get_surface().get_size()
@@ -241,7 +247,6 @@ class Osst:
 
         # display circles
         pos, rad = self.camera.get_target()
-        print(pos)
 
         if pos is not None:
             x = int(pos[0] * 400 / WEBCAM_CROP_WIDTH)
@@ -419,8 +424,12 @@ class Osst:
 
             # --- main business logic
             # ---- detect a triggered shot.
+
             if self.camera.detect_shot_triggered():
-                print("Shot detected!")
+                print("Shot detected by camera!")
+            if self.disag_server.data_received():
+                d = self.disag_server.get_data()
+                print("Disag server found shot")
 
             # read cameras
             if not self.pause_capture:
