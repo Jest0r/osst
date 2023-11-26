@@ -15,7 +15,7 @@ export PYGAME_HIDE_SUPPORT_PROMPT=1
 export OPENCV_LOG_LEVEL=OFF
 # redirect error to dev null, as some webcams stram warnings
 if [ "$1" == "-s" ]; then
-    $venv_name/bin/python ./osst.py $*  2>/dev/null
+    $venv_name/bin/python ./osst.py  2>/dev/null
 else
     $venv_name/bin/python ./osst.py $* 
 fi
