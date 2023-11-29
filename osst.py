@@ -144,7 +144,7 @@ class Osst:
         self.target_center = None
 
         # draw target image
-        self.target_frame = self.target.draw()
+        #self.target_frame = self.target.draw()
 
         self.keep_running = True
         self.pause_capture = False
@@ -177,6 +177,7 @@ class Osst:
 
     def quit(self, retval=0):
         """graceful exit"""
+        self.disag_server.end()
         self.camera.quit()
         pygame.quit()
         sys.exit(0)
@@ -236,6 +237,7 @@ class Osst:
 
         # ---- MAIN TARGET WINDOW
         # target as background
+        self.target_frame = self.target.draw()
         self.screen.blit(self.target_frame, (0, 0))
 
         # ---- CAM WINDOWS
@@ -295,6 +297,7 @@ class Osst:
             l.set_line_len_color_gradient((0, 255, 0), (255, 0, 0), maxlen)
 
             # draw
+            # BUUULSHIT! This should go to the target, shouldn't it?!
             l.draw_lines(self.screen, thickness=3)
             # l.draw_curve(self.screen, thickness=3)
 
@@ -395,19 +398,27 @@ class Osst:
             # mouse events
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 # set offset to mouse pos
-                pos = pygame.mouse.get_pos()
-                offset_x = (pos[0] - 1000) * WEBCAM_CROP_WIDTH / 400
-                offset_y = (pos[1] - 400) * WEBCAM_CROP_HEIGHT / 400
-                self.target_center = [offset_x, offset_y]
+                buttons_pressed = pygame.mouse.get_pressed(num_buttons = 5)
+                if buttons_pressed[0]:
+                    pos = pygame.mouse.get_pos()
+                    offset_x = (pos[0] - 1000) * WEBCAM_CROP_WIDTH / 400
+                    offset_y = (pos[1] - 400) * WEBCAM_CROP_HEIGHT / 400
+                    self.target_center = [offset_x, offset_y]
 
-                # set tracker offset if there was a shot already
-                if self.camera.target_pos is not None:
-                    new_offset = [
-                        offset_x - self.camera.target_pos[0],
-                        offset_y - self.camera.target_pos[1],
-                    ]
-                    print(f"new offset: {new_offset}")
-                    self.tracker.offset = new_offset
+                    # set tracker offset if there was a shot already
+                    if self.camera.target_pos is not None:
+                        new_offset = [
+                            offset_x - self.camera.target_pos[0],
+                            offset_y - self.camera.target_pos[1],
+                        ]
+                        print(f"new offset: {new_offset}")
+                        self.tracker.offset = new_offset
+            elif event.type == pygame.MOUSEWHEEL:
+                if event.y > 0:
+                    self.target.scale_out()
+                elif event.y < 0:
+                    self.target.scale_in()
+
 
             # window closing
             elif event.type == pygame.QUIT:

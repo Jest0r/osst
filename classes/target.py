@@ -61,7 +61,7 @@ class Target:
         #        self.screen = pygame.display.set_mode((self.width, self.height), depth=32)
 
         self.shots = []
-        self.scale_factor = 1
+#        self.scale_factor = 1
 
         if self.disktype == "lp":
             self.max_scale = LP_SCALE
@@ -71,40 +71,36 @@ class Target:
             self.bgcol = LP_BGCOL
             self.text = LP_TEXT
         else:
-            # self.scale = LG_SCALE
             self.max_scale = self.width / LG_RADIUS[-1]
-            self.scale = self.width / LG_RADIUS[-1] / 2.5
+#            self.scale = self.width / LG_RADIUS[-1] / 2.5
+            self.scale = self.width / LG_RADIUS[-1] / 4
             self.radius = LG_RADIUS
             self.fgcol = LG_FGCOL
             self.bgcol = LG_BGCOL
             self.text = LG_TEXT
 
-    def set_scale_factor(self, factor):
-        self.scale_factor = factor
-        
-    def draw(self):
-        self.surf = pygame.Surface((self.width, self.height))
+    def _draw_shot(self, x, y, color):
+        r = SHOT_RADIUS * self.scale
+        # print(r)
+        c = pygame.Surface((r * 2, r * 2), pygame.SRCALPHA)
+        pygame.draw.circle(c, color, (r, r), r)
+        pygame.draw.circle(c, (0, 0, 0), (r, r), r, width=1)
+        self.surf.blit(
+            c,
+            (
+                (x - SHOT_RADIUS) * self.scale + self.center,
+                (y - SHOT_RADIUS) * self.scale + self.center,
+            ),
+        )
 
-        self.scale = self.width / LG_RADIUS[-1] / 2.5
-
-        self.surf.fill((255, 255, 255))
-
-        for r in range(len(self.radius) - 1, -1, -1):
-            self._draw_circle(self.radius[r], self.fgcol[r], self.bgcol[r], 2)
-            self._draw_num(
-                self.radius[r], self.radius[r - 1], self.fgcol[r - 1], self.text[r]
-            )
-
-        return self.surf
-
-    def get_black_radius(self):
-        r = 0
-        if self.disktype == "lp":
-            r = self.radius[4]
-        else:
-            r = self.radius[5]
-
-        return self.width / LG_RADIUS[-1] * r / 2.5
+    def _draw_line(self, oldx, oldy, x, y, color, width):
+        pygame.draw.line(
+            self.surf,
+            color,
+            ((oldx * self.scale) + self.center, (oldy * self.scale) + self.center),
+            ((x * self.scale) + self.center, (y * self.scale) + self.center),
+            width,
+        )
 
     def _draw_circle(self, radius, fgcolor, bgcolor, width):
         pygame.draw.circle(
@@ -121,7 +117,8 @@ class Target:
     def _draw_num(self, radius, radius2, fgcolor, mystring):
         if mystring == "":
             return
-        font = pygame.font.Font("freesansbold.ttf", 15)
+        #font = pygame.font.Font("freesansbold.ttf", 15)
+        font = pygame.font.Font("freesansbold.ttf",  int(80 *self.scale))
         text_surf = font.render(mystring, True, fgcolor)
         w, h = text_surf.get_size()
         # right
@@ -160,29 +157,43 @@ class Target:
                 - 0.5 * h,
             ),
         )
+    
+    def scale_out(self, stepsize=0.01):
+        self.scale += stepsize
+        print(self.scale)
 
-    def _draw_shot(self, x, y, color):
-        r = SHOT_RADIUS * self.scale
-        # print(r)
-        c = pygame.Surface((r * 2, r * 2), pygame.SRCALPHA)
-        pygame.draw.circle(c, color, (r, r), r)
-        pygame.draw.circle(c, (0, 0, 0), (r, r), r, width=1)
-        self.surf.blit(
-            c,
-            (
-                (x - SHOT_RADIUS) * self.scale + self.center,
-                (y - SHOT_RADIUS) * self.scale + self.center,
-            ),
-        )
+    def scale_in(self, stepsize=0.01):
+        self.scale = max(0, self.scale - stepsize)
+        print(self.scale)
 
-    def _draw_line(self, oldx, oldy, x, y, color, width):
-        pygame.draw.line(
-            self.surf,
-            color,
-            ((oldx * self.scale) + self.center, (oldy * self.scale) + self.center),
-            ((x * self.scale) + self.center, (y * self.scale) + self.center),
-            width,
-        )
+
+#    def set_scale_factor(self, factor):
+#        self.scale_factor = factor
+        
+    def draw(self):
+        self.surf = pygame.Surface((self.width, self.height))
+
+        #self.scale = self.width / LG_RADIUS[-1] / 2.5
+
+        self.surf.fill((255, 255, 255))
+
+        for r in range(len(self.radius) - 1, -1, -1):
+            self._draw_circle(self.radius[r], self.fgcol[r], self.bgcol[r], 2)
+            self._draw_num(
+                self.radius[r], self.radius[r - 1], self.fgcol[r - 1], self.text[r]
+            )
+
+        return self.surf
+
+    def get_black_radius(self):
+        r = 0
+        if self.disktype == "lp":
+            r = self.radius[4]
+        else:
+            r = self.radius[5]
+
+        return self.width / LG_RADIUS[-1] * r / 2.5
+
 
     def draw_center(self, limit=0):
         oldx = None
