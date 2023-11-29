@@ -27,7 +27,7 @@ TARGET_CIRCLE_WIDTH = 4
 DETECTION_THRESHOLD = 0
 DETECTION_EDGE = 1
 
-USE_MIC = True
+USE_MIC = False
 MIC_AUDIO_RATE = 48000
 MIC_AUDIO_CHUNK = 1024
 MIC_AUDIO_FORMAT = pyaudio.paInt16
@@ -37,6 +37,7 @@ MIC_SHORT_NORMALIZE = 1.0 / 32768.0
 MIC_TRIGGER_VOLUME_THRESHOLD = 0.65
 
 
+# TODO: get video device by name ("v4l2-ctl --list-devices")
 class Camera:
     """handles USB camera video capture, object recognition and microphone"""
 
@@ -87,7 +88,7 @@ class Camera:
         self.target_radius = None
 
         # detection method
-        self.detect_method = DETECTION_EDGE
+        self.detect_method = DETECTION_THRESHOLD
         # blur grey image (for both methods)
         self.blur = True
         # threshold stuff
@@ -118,9 +119,12 @@ class Camera:
             return False
 
         if type(crop_size) == tuple:
+            print(f"1 = {np.shape(self.raw_frame)} {crop_size}")
+
             self.raw_frame = self.crop_frame(self.raw_frame, crop_size)
-        #            print(self.raw_frame.shape)
-        #        print(type(crop_size))
+            #            print(self.raw_frame.shape)
+            #        print(type(crop_size))
+            print(f"2 = {np.shape(self.raw_frame)}")
 
         self.raw_frame = cv2.cvtColor(self.raw_frame, cv2.COLOR_BGR2RGB)
         self.raw_frame = np.rot90(self.raw_frame, 1)
@@ -131,6 +135,7 @@ class Camera:
         """crop frame centrally to a certain size"""
         start_x = (self.width - crop_size[0]) // 2
         start_y = (self.height - crop_size[1]) // 2
+        print(start_x, start_y)
         # crop the image (be aware of the x/y sequence)
         return frame[
             start_y : (start_y + crop_size[1]), start_x : (start_x + crop_size[0])
@@ -172,13 +177,24 @@ class Camera:
         # so the better suitable one can be used
         if self.detect_method == DETECTION_THRESHOLD:
             ret, self.thresh_frame = cv2.threshold(
-                self.gray_frame, self.gray_threshold, 255, cv2.THRESH_BINARY
+                # self.gray_frame, self.gray_threshold, 255, cv2.THRESH_BINARY
+                self.gray_frame,
+                self.gray_threshold,
+                255,
+                # cv2.THRESH_TOZERO,
+                cv2.THRESH_BINARY,
             )
+            if self.blur:
+                self.thresh_frame = cv2.GaussianBlur(self.thresh_frame, (3, 3), 0)
+                # self.thresh_frame = cv2.bilateralFilter(self.thresh_frame, 3, 50, 50)
+                # self.thresh_frame = cv2.medianBlur(self.thresh_frame, 1)
+                # self.thresh_frame = cv2.blur(self.thresh_frame, (1, 1))
             self.thresh_frame = cv2.Canny(
                 # image=self.gray_frame, threshold1=50, threshold2=200
                 image=self.thresh_frame,
                 threshold1=self.canny_threshold1,
                 threshold2=self.canny_threshold2,
+                L2gradient=True,
             )
         else:
             self.thresh_frame = cv2.Canny(

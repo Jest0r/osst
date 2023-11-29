@@ -33,6 +33,8 @@ WEBCAM_EXTERNAL = 4
 WEBCAM_OSST_FIRST = 4
 WEBCAM_OSST_SECOND = 6
 
+USE_DISAG = False
+
 
 # script version
 VERSION = _version.__version__
@@ -53,12 +55,11 @@ WEBCAM_CROP_HEIGHT = 700
 WEBCAM_SETTINGS_INTERNAL = [1920, 1680, 30, 1, "MJPG", 0, 32000]
 WEBCAM_SETTINGS_EXTERNAL = [1920, 1680, 30, 1, "MJPG", 5, 32000]
 WEBCAM_SETTINGS_OSST_DEV = [1280, 960, 30, 2, "MJPG", 5, 48000]
-#WEBCAM_SETTINGS_OSST_DEV = [960, 720, 30, 2, "MJPG", 8, 48000]
+# WEBCAM_SETTINGS_OSST_DEV = [960, 720, 30, 2, "MJPG", 8, 48000]
 
 # SETTINGS - To change here
-WEBCAM_ID = 0
+WEBCAM_ID = 6
 WEBCAM_SETTINGS = WEBCAM_SETTINGS_OSST_DEV
-
 
 
 # webcam settings indexes
@@ -144,16 +145,17 @@ class Osst:
         self.target_center = None
 
         # draw target image
-        #self.target_frame = self.target.draw()
+        # self.target_frame = self.target.draw()
 
         self.keep_running = True
         self.pause_capture = False
 
-        self.clock = pygame.time.Clock()
+        #        self.clock = pygame.time.Clock()
         self.starttime = datetime.now()
 
         self.crop = True
         self.fps = 0
+        self.framecount = 0
         self.circles_per_second = 0
         self.fails_per_second = 0
 
@@ -398,28 +400,30 @@ class Osst:
             # mouse events
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 # set offset to mouse pos
-                buttons_pressed = pygame.mouse.get_pressed(num_buttons = 5)
-                if buttons_pressed[0]:
-                    pos = pygame.mouse.get_pos()
-                    offset_x = (pos[0] - 1000) * WEBCAM_CROP_WIDTH / 400
-                    offset_y = (pos[1] - 400) * WEBCAM_CROP_HEIGHT / 400
-                    self.target_center = [offset_x, offset_y]
+                pos = pygame.mouse.get_pos()
 
-                    # set tracker offset if there was a shot already
-                    if self.camera.target_pos is not None:
-                        new_offset = [
-                            offset_x - self.camera.target_pos[0],
-                            offset_y - self.camera.target_pos[1],
-                        ]
-                        print(f"new offset: {new_offset}")
-                        self.tracker.offset = new_offset
+                win_width, win_height = pygame.display.get_surface().get_size()
+
+                scale = (win_width - self.target.width) / WEBCAM_CROP_WIDTH
+
+                offset_x = self.target.width  # / scale
+                offset_y = WEBCAM_CROP_HEIGHT * scale  # / scale
+
+                self.target_center = [pos[0] - offset_x, pos[1] - offset_y]
+
+                # set tracker offset if there was a shot already
+                if self.camera.target_pos is not None:
+                    new_offset = [
+                        pos[0] - offset_x * scale,
+                        pos[1] - offset_y * scale,
+                    ]
+                    print(f"new offset: {new_offset}")
+                    self.tracker.offset = new_offset
             elif event.type == pygame.MOUSEWHEEL:
                 if event.y > 0:
                     self.target.scale_out()
                 elif event.y < 0:
                     self.target.scale_in()
-
-
             # window closing
             elif event.type == pygame.QUIT:
                 self.keep_running = False
@@ -438,7 +442,7 @@ class Osst:
 
             if self.camera.detect_shot_triggered():
                 print("Shot detected by camera!")
-            if self.disag_server.data_received():
+            if USE_DISAG and self.disag_server.data_received():
                 d = self.disag_server.get_data()
                 print("Disag server found shot")
 
@@ -475,10 +479,12 @@ class Osst:
             self.draw()
 
             # update fps every full second
-            self.clock.tick()
+            self.framecount += 1
+            #            self.clock.tick()
             if (datetime.now() - self.starttime).total_seconds() >= 1:
                 self.starttime = datetime.now()
-                self.fps = self.clock.get_fps()
+                self.fps = self.framecount
+                self.framecount = 0
                 self.circles_per_second = detected_counter
                 detected_counter = 0
                 self.fails_per_second = fail_counter
