@@ -49,8 +49,6 @@ class MainWindow(Gtk.ApplicationWindow):
         self.notebook1 = Gtk.Notebook()
         self.page1 = Gtk.Box()
         self.page2 = Gtk.Box()
-        #        self.page1.set_border_width(10)
-        # self.page1.add(Gtk.Label(label="Default Page"))
 
         self.notebook1.append_page(self.page1, Gtk.Label(label="first"))
         self.notebook1.append_page(self.page2, Gtk.Label(label="second"))
@@ -64,11 +62,7 @@ class MainWindow(Gtk.ApplicationWindow):
         self.maindrawing.set_content_width(w // 2)
         self.maindrawing.set_content_height(h // 2)
         self.maindrawing.set_draw_func(self.draw, None)
-        #        self.maindrawing.connect("expose-event", self.expose_event)
         self.maindrawing.connect("realize", self.realize)
-        #        self.maindrawing.connect("set_draw_func", self.draw)
-        #        self.maindrawing.connect("time")
-        #        self.maindrawing.scale(200, 200)
 
         self.page1.append(self.maindrawing)
 
@@ -76,9 +70,8 @@ class MainWindow(Gtk.ApplicationWindow):
         self.raw_frame = None
         self.pixbuf = None
 
-    #        self.rootbox.connect("resize", self.resize)
-
-    #        self.connect("configure-event", self.on_resize)
+    def hello(self):
+        print("button pressed")
 
     def realize(self, widget):
         print("realize")
@@ -93,7 +86,6 @@ class MainWindow(Gtk.ApplicationWindow):
     def draw(self, area, c, w, h, data):
         # if there is camera input, show it
         if self.pixbuf is not None:
-            print(type(self.pixbuf))
             Gdk.cairo_set_source_pixbuf(c, self.pixbuf, 0, 0)
             c.rectangle(0, 0, 400, 250)
             c.fill()
@@ -122,26 +114,14 @@ class MainWindow(Gtk.ApplicationWindow):
         ret, self.raw_frame = self.cam.read()
         self.raw_frame = cv2.cvtColor(self.raw_frame, cv2.COLOR_BGR2RGB)
 
-        # self.frame = np.resize(self.raw_frame, (height, width)).ravel()
-        print(np.shape(self.raw_frame))
-        #        self.frame = np.resize(self.raw_frame, (height, width, 3))
-        #        print(np.shape(self.frame))
         self.frame = cv2.resize(self.raw_frame, (400, 250))
-        print(np.shape(self.frame))
         fbytes = self.frame.tobytes()
 
         fb = GLib.Bytes.new(fbytes)
 
-        #        self.frame = self.frame.astype(int)
-        print(f"type: {type(self.frame[0])}, {len(self.frame)}, {width}/{height}")
-
-        #        fb = GLib.Bytes.new(self.frame)
-        #        print(fb.get_size())
-
         # convert to pixbuf
         self.pixbuf = GdkPixbuf.Pixbuf.new_from_bytes(
             fb,
-            #            self.frame,
             colorspace=GdkPixbuf.Colorspace.RGB,
             has_alpha=False,
             bits_per_sample=8,
@@ -165,17 +145,12 @@ class MyApp(Gtk.Application):
         self.win = MainWindow(application=app)
         self.win.present()
 
-    def run(self, argv):
-        super().run(argv)
+        GLib.timeout_add(100, self.on_timeout, None)
 
     def on_timeout(self, data):
         self.win.on_timeout(data)
         return True
 
 
-app = MyApp(application_id="com.example.GtkApplication")
-print(GObject.signal_list_names(Adw.Application))
-GLib.timeout_add(100, app.on_timeout, None)
-# loop = GLib.MainLoop()
-# loop.run()
+app = MyApp(application_id="com.github.jest0r.osst")
 app.run(sys.argv)
