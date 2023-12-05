@@ -7,7 +7,7 @@ import math
 # third party imports
 # for image recognition
 import cv2
-from pygame import time
+#from pygame import time
 
 # for audio shot detection
 import pyaudio

@@ -10,6 +10,13 @@
 
         <child type="top">
           <object class="AdwHeaderBar" id="header_bar">
+              <child type="start">
+                <object class="GtkButton" id="open_button">
+                  <property name="label">Toggle Sidebar</property>
+                  <property name="icon-name">sidebar-show-right-rtl-symbolic</property>
+                  <signal name="clicked" handler="split_view__toggle_sidebar" swapped="no"/> 
+                </object>
+            </child>
             <child type="end">
               <object class="GtkMenuButton">
                 <property name="primary">True</property>
@@ -26,17 +33,29 @@
           <object class="AdwNavigationSplitView" id="split_view">
             <property name="max-sidebar-width">600</property>
             <property name="min-sidebar-width">200</property>
+            <property name="show-content">True</property>
             <!-- sidebar of the split view -->
             <property name="sidebar">
               <object class="AdwNavigationPage">
                 <property name="title"> Sidebar</property>
                 <property name="child"> 
                   <object class="GtkBox">
+                  <!--
+                    
                     <child> 
                       <object class="GtkButton" id="open_button">
                         <property name="label">Toggle Sidebar</property>
                         <property name="icon-name">sidebar-show-right-rtl-symbolic</property>
-                        <signal name="clicked" handler="toggle_sidebar" swapped="no"/> 
+                        <signal name="clicked" handler="split_view__toggle_sidebar" swapped="no"/> 
+                      </object>
+                    </child>
+                  -->
+                    <child>
+                      <object class="GtkLabel" id="sidebar_label">
+                        <property name="label">This is a sidebar</property>
+                        <style>
+                          <class name="title-3"/>
+                        </style>
                       </object>
                     </child>
                   </object>
@@ -49,16 +68,24 @@
                 <property name="title"> Content</property>
                 <property name="child"> 
                   <object class="GtkBox">
+                    <child>
+                      <object class="GtkLabel" id="label">
+                        <property name="label">Hello, World!</property>
+                        <style>
+                          <class name="title-1"/>
+                        </style>
+                      </object>
+                    </child>
                   </object>
                 </property>
               </object>
             </property>
           </object>
-          <!--
-          <object class="GtkLabel" id="label">
-            <property name="label">Hello, World!</property>
-            <style>
-              <class name="title-1"/>
+            <!--
+            <object class="GtkLabel" id="label">
+              <property name="label">Hello, World!</property>
+              <style>
+                <class name="title-1"/>
             </style>
           </object>
           -->

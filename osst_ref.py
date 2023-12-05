@@ -1,4 +1,6 @@
-# window.py
+#!@PYTHON@
+
+# osst_ref.in
 #
 # Copyright 2023 Helmut M
 #
@@ -17,25 +19,29 @@
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-from gi.repository import Adw
-from gi.repository import Gtk
+import os
+import sys
+import signal
+import locale
+import gettext
 
-def toggle_sidebar(b):
-    print("functoggle")
+#VERSION = '@VERSION@'
+VERSION = '0.0.2'
+pkgdatadir = 'windows'
+#localedir = '@localedir@'
 
-@Gtk.Template(filename='windows/mainwin.ui')
-class OsstWindow(Adw.ApplicationWindow):
-    __gtype_name__ = 'OsstWindow'
+sys.path.insert(1, pkgdatadir)
+signal.signal(signal.SIGINT, signal.SIG_DFL)
+#locale.bindtextdomain('osst_ref', localedir)
+#locale.textdomain('osst_ref')
+#gettext.install('osst_ref', localedir)
 
-    # 'read' the object from the xml template
-    split_view = Gtk.Template.Child("split_view")
+if __name__ == '__main__':
+    import gi
 
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
+#    from gi.repository import Gio
+#    resource = Gio.Resource.load(os.path.join(pkgdatadir, 'osst_ref.gresource.xml'))
+#    resource._register()
 
-    # create a template 
-    @Gtk.Template.Callback()
-    def split_view__toggle_sidebar(self, b):
-        print("functoggle osstwindow")
-        self.split_view.set_collapsed(not self.split_view.get_collapsed())
-
+    from osst_ref import main
+    sys.exit(main.main(VERSION))

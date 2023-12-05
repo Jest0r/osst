@@ -58,13 +58,23 @@ class MainWindow(Gtk.ApplicationWindow):
         w, h = self.get_default_size()
         self.orig_draw_w = w // 2
         self.orig_draw_h = h // 2
+
         self.maindrawing = Gtk.DrawingArea()
         self.maindrawing.set_content_width(w // 2)
         self.maindrawing.set_content_height(h // 2)
         self.maindrawing.set_draw_func(self.draw, None)
         self.maindrawing.connect("realize", self.realize)
 
+        self.caminfo = Gtk.TextView()
+        tb = self.caminfo.get_buffer()
+        tb.set_text("This is a test for the camera settings")
+        self.caminfo.set_buffer(tb)
+
         self.page1.append(self.maindrawing)
+        self.f = Gtk.Frame()
+        self.f.set_label("framelabel")
+        self.statusbarbox.append(self.f)
+        self.statusbarbox.append(self.caminfo)
 
         self.frame = None
         self.raw_frame = None

@@ -19,7 +19,6 @@ import math
 # third party imports
 import cv2
 import pygame
-
 # local imports
 import _version
 from classes.target import *
@@ -58,7 +57,7 @@ WEBCAM_SETTINGS_OSST_DEV = [1280, 960, 30, 2, "MJPG", 5, 48000]
 # WEBCAM_SETTINGS_OSST_DEV = [960, 720, 30, 2, "MJPG", 8, 48000]
 
 # SETTINGS - To change here
-WEBCAM_ID = 6
+WEBCAM_ID = 0
 WEBCAM_SETTINGS = WEBCAM_SETTINGS_OSST_DEV
 
 
@@ -291,6 +290,7 @@ class Osst:
 
         # --- movements
         allpos = self.tracker.get_all_positions(scaled=True)
+        print(f"num positios: {len(allpos)}")
         if len(allpos) > 5:
             l = lines.Lines(allpos)
             # origin
@@ -361,22 +361,22 @@ class Osst:
                 if event.key == pygame.K_q:
                     self.keep_running = False
                 # gray / canny threshold
-                elif event.key == pygame.K_KP7:
+                elif event.key == pygame.K_u:
                     if self.camera.gray_threshold > 0:
                         self.camera.gray_threshold -= 5
                     if self.camera.canny_threshold1 > 0:
                         self.camera.canny_threshold1 -= 5
-                elif event.key == pygame.K_KP9:
+                elif event.key == pygame.K_o:
                     if self.camera.gray_threshold < 255:
                         self.camera.gray_threshold += 5
                     if self.camera.canny_threshold1 < 250:
                         self.camera.canny_threshold1 += 5
                 # target size
-                elif event.key == pygame.K_KP1:
+                elif event.key == pygame.K_j:
                     if self.camera.target_min_radius > 5:
                         self.camera.target_min_radius -= 2
                         self.camera.target_max_radius -= 2
-                elif event.key == pygame.K_KP3:
+                elif event.key == pygame.K_l:
                     if self.camera.target_max_radius < 100:
                         self.camera.target_min_radius += 2
                         self.camera.target_max_radius += 2

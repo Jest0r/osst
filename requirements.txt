@@ -5,3 +5,5 @@ pyaudio
 numpy
 scipy
 
+pycairo
+pygobject

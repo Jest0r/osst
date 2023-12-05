@@ -137,6 +137,7 @@ class Lines:
 
             #            print((a.x, a.y), (b.x, b.y))
 
+            print (f"({a}) / ({b})")
             pygame.draw.line(
                 screen,
                 self.get_color(a, b),
