@@ -19,6 +19,7 @@ import math
 # third party imports
 import cv2
 import pygame
+
 # local imports
 import _version
 from classes.target import *
@@ -50,6 +51,7 @@ EXIT_MSG = [None, "Cannot read from Camera. Camera ID ok?"]
 
 WEBCAM_CROP_WIDTH = 1000
 WEBCAM_CROP_HEIGHT = 700
+SIDEPANEL_WIDTH = 400
 
 WEBCAM_SETTINGS_INTERNAL = [1920, 1680, 30, 1, "MJPG", 0, 32000]
 WEBCAM_SETTINGS_EXTERNAL = [1920, 1680, 30, 1, "MJPG", 5, 32000]
@@ -57,8 +59,8 @@ WEBCAM_SETTINGS_OSST_DEV = [1280, 960, 30, 2, "MJPG", 5, 48000]
 # WEBCAM_SETTINGS_OSST_DEV = [960, 720, 30, 2, "MJPG", 8, 48000]
 
 # SETTINGS - To change here
-WEBCAM_ID = 0
-WEBCAM_SETTINGS = WEBCAM_SETTINGS_OSST_DEV
+WEBCAM_ID = 4
+WEBCAM_SETTINGS = WEBCAM_SETTINGS_EXTERNAL
 
 
 # webcam settings indexes
@@ -144,7 +146,8 @@ class Osst:
         self.target_center = None
 
         # draw target image
-        # self.target_frame = self.target.draw()
+        self.target_frame = self.target.draw()
+        self.target
 
         self.keep_running = True
         self.pause_capture = False
@@ -199,8 +202,10 @@ class Osst:
         if self.target_center is None:
             return
         x, y = self.target_center
+        print(f"draw center: {frame.get_size()}, {x},{y}")
         x *= scale
         y *= scale
+        print(f"draw center: {frame.get_size()}, {x},{y}")
         line_len = 9
         line_color = pygame.Color(0, 255, 255)
         line_thickness = 1
@@ -234,44 +239,71 @@ class Osst:
         # +----...----+---...---+
 
         # get window size
-        win_width, win_height = pygame.display.get_surface().get_size()
+        #        win_width, win_height = pygame.display.get_surface().get_size()
+        new_width = SIDEPANEL_WIDTH
 
         # ---- MAIN TARGET WINDOW
-        # target as background
         self.target_frame = self.target.draw()
-        self.screen.blit(self.target_frame, (0, 0))
+        self.screen.blit(
+            self.target_frame,
+            (0, 0),
+        )
+
+        aspect = WEBCAM_CROP_WIDTH / WEBCAM_CROP_HEIGHT
+        new_height = int(new_width / aspect)
+        # print(new_width, new_height)
+
+        scale = new_width / WEBCAM_CROP_WIDTH  # < 0!
 
         # ---- CAM WINDOWS
-        rsurf = self.get_scaled_surface(self.camera.raw_frame, (400, 400))
-        tsurf = self.get_scaled_surface(self.camera.thresh_frame, (400, 400))
-        gsurf = self.get_scaled_surface(
-            cv2.cvtColor(self.camera.gray_frame, cv2.COLOR_GRAY2RGB), (400, 400)
+        rsurf = self.get_scaled_surface(self.camera.raw_frame, (new_width, new_height))
+        tsurf = self.get_scaled_surface(
+            self.camera.thresh_frame, (new_width, new_height)
         )
+        gsurf = self.get_scaled_surface(
+            cv2.cvtColor(self.camera.gray_frame, cv2.COLOR_GRAY2RGB),
+            (new_width, new_height),
+        )
+
+        #        print(
+        #            f"surface dim: {tsurf.get_size()}, {gsurf.get_size()} cropped size: ({WEBCAM_CROP_WIDTH},{WEBCAM_CROP_HEIGHT})"
+        #        )
 
         # display circles
         pos, rad = self.camera.get_target()
 
         if pos is not None:
-            x = int(pos[0] * 400 / WEBCAM_CROP_WIDTH)
-            y = int(pos[1] * 400 / WEBCAM_CROP_WIDTH)
-            rad = int(rad * 400 / WEBCAM_CROP_WIDTH)
+            # THIS HAS TO CHANGE!
+            # x = int(pos[0] * new_width / WEBCAM_CROP_WIDTH)
+            # y = int(pos[1] * new_height / WEBCAM_CROP_HEIGHT)
+            x = int(pos[0] * scale)
+            y = int(pos[1] * scale)
+            rad = int(rad * scale)
+            min_rad = int(self.camera.target_min_radius * scale)
+            max_rad = int(self.camera.target_max_radius * scale)
 
             self.tracker.set_source_scale(rad)
 
             # circle color
-            color = (255, 0, 0)
+            center_color = (255, 0, 0)
+            min_rad_color = (0, 150, 0)
+            max_rad_color = (0, 150, 0)
             if self.circles_per_second > 0:
                 if self.fails_per_second / self.circles_per_second < 0.2:
                     # green
-                    color = (0, 255, 0)
+                    center_color = (0, 255, 0)
                 elif self.fails_per_second / self.circles_per_second < 0.5:
                     # yelos
-                    color = (255, 255, 0)
-
-            pygame.draw.circle(tsurf, color, (x, y), rad, 2)
+                    center_color = (255, 255, 0)
+            # draw min and max radius
+            pygame.draw.circle(tsurf, min_rad_color, (x, y), min_rad, 1)
+            pygame.draw.circle(tsurf, max_rad_color, (x, y), max_rad, 1)
+            # draw actual circle
+            pygame.draw.circle(tsurf, center_color, (x, y), rad, 2)
 
         # display center
-        self.draw_center(tsurf, 400 / WEBCAM_CROP_WIDTH)
+        # self.draw_center(tsurf, SIDEPANEL_WIDTH / WEBCAM_CROP_WIDTH)
+        self.draw_center(tsurf, scale)
 
         # display camera windows
         self.screen.blit(
@@ -283,18 +315,20 @@ class Osst:
         if self.camera.thresh_frame is not None:
             self.screen.blit(
                 tsurf,
-                (1000, 400),
+                (1000, new_height),
             )
 
-        maxlen = win_height // 8
+        maxlen = WEBCAM_CROP_HEIGHT // 8
 
         # --- movements
         allpos = self.tracker.get_all_positions(scaled=True)
-        print(f"num positios: {len(allpos)}")
+        print(allpos)
+        #        print(f"num positios: {len(allpos)}")
         if len(allpos) > 5:
             l = lines.Lines(allpos)
             # origin
-            l.set_origin(vec2d(500, 500))
+            l.set_origin(vec2d(self.target_center[0], self.target_center[1]))
+            #                        f"Target center: {self.target_center}, current pos: {self.camera.target_pos}, relative: [{x}, {y}]"
             # color
             l.set_line_len_color_gradient((0, 255, 0), (255, 0, 0), maxlen)
 
@@ -323,7 +357,9 @@ class Osst:
             (self.camera.target_max_radius, self.camera.target_max_radius),
             self.camera.target_min_radius,
         )
-        pygame.transform.scale_by(min_max_target_surf, 400 / WEBCAM_CROP_WIDTH)
+        pygame.transform.scale_by(
+            min_max_target_surf, SIDEPANEL_WIDTH / WEBCAM_CROP_WIDTH
+        )
         self.screen.blit(min_max_target_surf, (1100, 900))
 
         # resolution
@@ -399,26 +435,37 @@ class Osst:
                     self.camera.detect_method = 1 - self.camera.detect_method
             # mouse events
             elif event.type == pygame.MOUSEBUTTONDOWN:
+                # TODO: This is a nightmare!
                 # set offset to mouse pos
                 pos = pygame.mouse.get_pos()
 
                 win_width, win_height = pygame.display.get_surface().get_size()
 
-                scale = (win_width - self.target.width) / WEBCAM_CROP_WIDTH
+                scale = SIDEPANEL_WIDTH / WEBCAM_CROP_WIDTH
+                print(win_width, win_height, scale)
 
-                offset_x = self.target.width  # / scale
-                offset_y = WEBCAM_CROP_HEIGHT * scale  # / scale
+                # scaled offset
+                scaled_offset_x = self.target.width  # / scale
+                scaled_offset_y = WEBCAM_CROP_HEIGHT * scale  # / scale
 
-                self.target_center = [pos[0] - offset_x, pos[1] - offset_y]
+                # scaled back
+                self.target_center = [
+                    (pos[0] - scaled_offset_x) / scale,
+                    (pos[1] - scaled_offset_y) / scale,
+                ]
+                # self.target_center = [pos[0], pos[1]]
 
                 # set tracker offset if there was a shot already
                 if self.camera.target_pos is not None:
                     new_offset = [
-                        pos[0] - offset_x * scale,
-                        pos[1] - offset_y * scale,
+                        pos[0] - scaled_offset_x * scale,
+                        pos[1] - scaled_offset_y * scale,
                     ]
-                    print(f"new offset: {new_offset}")
-                    self.tracker.offset = new_offset
+                    print(
+                        f"Mouse pos: {pos} -  win offset: {scaled_offset_x}, {scaled_offset_y} - Target center: {self.target_center}, new offset: {new_offset}"
+                    )
+                    # self.tracker.offset = new_offset
+            #                    self.tracker.offset =
             elif event.type == pygame.MOUSEWHEEL:
                 if event.y > 0:
                     self.target.scale_out()
@@ -466,7 +513,12 @@ class Osst:
                 if self.target_center is not None:
                     x = self.target_center[0] - self.camera.target_pos[0]
                     y = self.target_center[1] - self.camera.target_pos[1]
-                    #                    print(self.target_center, self.camera.target_pos, [x, y])
+                    #                    print(
+                    #                        f"target center: {self.target_center} vs current pos {self.camera.target_pos}"
+                    # )
+                    print(
+                        f"Target center: {self.target_center}, current pos: {self.camera.target_pos}, relative: [{x}, {y}]"
+                    )
                     self.tracker.add_position([x, y])
 
                 #                    print(self.tracker.get_current_position())

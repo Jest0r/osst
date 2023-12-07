@@ -7,7 +7,8 @@ import math
 # third party imports
 # for image recognition
 import cv2
-#from pygame import time
+
+# from pygame import time
 
 # for audio shot detection
 import pyaudio
@@ -19,8 +20,8 @@ CANNY_THRESHOLD2 = 100
 
 HOUGH_MIN_DISTANCE = 500
 
-TARGET_MIN_RADIUS = 10
-TARGET_MAX_RADIUS = 25
+TARGET_MIN_RADIUS = 30
+TARGET_MAX_RADIUS = 60
 
 TARGET_CIRCLE_WIDTH = 4
 
@@ -118,28 +119,27 @@ class Camera:
         if ret is False:
             return False
 
-        if type(crop_size) == tuple:
-            print(f"1 = {np.shape(self.raw_frame)} {crop_size}")
-
+        if crop_size is not None:
             self.raw_frame = self.crop_frame(self.raw_frame, crop_size)
-            #            print(self.raw_frame.shape)
-            #        print(type(crop_size))
-            print(f"2 = {np.shape(self.raw_frame)}")
 
         self.raw_frame = cv2.cvtColor(self.raw_frame, cv2.COLOR_BGR2RGB)
-        self.raw_frame = np.rot90(self.raw_frame, 1)
+        self.raw_frame = np.rot90(self.raw_frame, 3)
         self.raw_frame = np.flip(self.raw_frame, 1)
         return True
 
     def crop_frame(self, frame, crop_size):
         """crop frame centrally to a certain size"""
-        start_x = (self.width - crop_size[0]) // 2
-        start_y = (self.height - crop_size[1]) // 2
-        print(start_x, start_y)
+        height, width, depth = np.shape(frame)
+        start_x = (width - crop_size[0]) // 2
+        start_y = (height - crop_size[1]) // 2
         # crop the image (be aware of the x/y sequence)
-        return frame[
+        newframe = frame[
             start_y : (start_y + crop_size[1]), start_x : (start_x + crop_size[0])
         ]
+        #        print(
+        #            f"shape comparison: {np.shape(frame)} - {np.shape(newframe)}  start: ({start_x}, {start_y}) - crop size({crop_size}) - {np.shape(frame)}"
+        #        )
+        return newframe
 
     def check_and_update_target(self, pos, radius):
         """checks if the new positions are probable, and updates accordinly"""
@@ -167,6 +167,7 @@ class Camera:
         # ToDo: rename?
         # convert img to grayscale
         self.gray_frame = cv2.cvtColor(self.raw_frame, cv2.COLOR_RGB2GRAY)
+        print(f"frame size during detection time: {np.shape(self.gray_frame)}")
         # frame_gray = frame[:, :, 0]
         if self.blur:
             self.gray_frame = cv2.GaussianBlur(self.gray_frame, (3, 3), 0)
