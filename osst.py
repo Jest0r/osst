@@ -240,7 +240,9 @@ class Osst:
 
         # get window size
         #        win_width, win_height = pygame.display.get_surface().get_size()
-        new_width = SIDEPANEL_WIDTH
+        w, h = self.screen.get_size()
+        #        print(w, h)
+        new_width = w - 1000
 
         # ---- MAIN TARGET WINDOW
         self.target_frame = self.target.draw()
@@ -358,7 +360,9 @@ class Osst:
             self.camera.target_min_radius,
         )
         pygame.transform.scale_by(
-            min_max_target_surf, SIDEPANEL_WIDTH / WEBCAM_CROP_WIDTH
+            # min_max_target_surf, SIDEPANEL_WIDTH / WEBCAM_CROP_WIDTH
+            min_max_target_surf,
+            new_width / WEBCAM_CROP_WIDTH,
         )
         self.screen.blit(min_max_target_surf, (1100, 900))
 
@@ -440,8 +444,10 @@ class Osst:
                 pos = pygame.mouse.get_pos()
 
                 win_width, win_height = pygame.display.get_surface().get_size()
-
-                scale = SIDEPANEL_WIDTH / WEBCAM_CROP_WIDTH
+                width = win_width - 1000
+                #                quit()
+                # scale = SIDEPANEL_WIDTH / WEBCAM_CROP_WIDTH
+                scale = width / WEBCAM_CROP_WIDTH
                 print(win_width, win_height, scale)
 
                 # scaled offset
