@@ -28,13 +28,13 @@ class Tracker:
         pos_x = (pixelpos[X] + self.offset[X]) * (self.target_scale / self.source_scale)
         pos_y = (pixelpos[Y] + self.offset[Y]) * (self.target_scale / self.source_scale)
 
-        #        print(f"Pixelpos: {pixelpos} {[pos_x, pos_y]}, offset: {self.offset}")
-        # return [pos_x, pos_y]
+        print(
+            f"Target/source scale: {self.target_scale}/{self.source_scale} Pixelpos: {pixelpos} -> {[pos_x, pos_y]}, offset: {self.offset}"
+        )
         return lines.vec2d(pos_x, pos_y)
 
     def reset(self):
         """reset to a fresh start"""
-        #        self.pos = [[0, 0] for i in range(self.num_elements)]
         self.pos = [lines.vec2d(0, 0) for i in range(self.num_elements)]
         self.pos_index = -1
         self.num_recorded = 0
@@ -44,6 +44,7 @@ class Tracker:
 
         # advance index
         # convert pixelpos to real pos and add it
+        print(f"adding position {pixelpos}")
         self.pos_index = (self.pos_index + 1) % len(self.pos)
         self.pos[self.pos_index] = self._pixel_to_pos(pixelpos)
         # increase counter, until all pos are filled
@@ -51,20 +52,10 @@ class Tracker:
         if self.num_recorded < len(self.pos):
             self.num_recorded += 1
 
-    #        print(f"Index: {self.pos_index} - recorded: {self.num_recorded}")
-
     def get_all_positions(self, scaled=False):
-        #        print(self.num_recorded)
-
         allpos = (self.pos[self.pos_index :: -1] + self.pos[: self.pos_index : -1])[
             : self.num_recorded
         ]
-
-        # if not scaled:
-        #     allpos = [
-        #         [x[0] / self.target_scale, x[1] / self.target_scale] for x in allpos
-        #     ]
-
         return allpos
 
     def get_current_position(self):

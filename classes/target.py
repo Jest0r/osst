@@ -37,11 +37,13 @@ LG_RADIUS = [25, 275, 525, 775, 1025, 1275, 1525, 1775, 2025, 2275]
 LG_BGCOL = [BLACK, BLACK, BLACK, BLACK, BLACK, BLACK, WHITE, WHITE, WHITE, WHITE]
 LG_FGCOL = [WHITE, WHITE, WHITE, WHITE, WHITE, BLACK, BLACK, BLACK, BLACK, BLACK]
 LG_TEXT = ["", "", "8", "7", "6", "5", "4", "3", "2", "1"]
+LG_FONT_SIZE = 80
 
 LP_RADIUS = [250, 575, 1375, 2175, 2975, 3775, 4575, 5375, 6175, 6975, 7775]
 LP_BGCOL = [BLACK, BLACK, BLACK, BLACK, BLACK, WHITE, WHITE, WHITE, WHITE, WHITE, WHITE]
 LP_FGCOL = [WHITE, WHITE, WHITE, WHITE, BLACK, BLACK, BLACK, BLACK, BLACK, BLACK, BLACK]
 LP_TEXT = ["", "", "9", "8", "7", "6", "5", "4", "3", "2", "1"]
+LP_FONT_SIZE = 240
 
 SHOT_RADIUS = 225  # 4.5mm caliber
 
@@ -82,18 +84,18 @@ class Target:
             self.fgcol = LP_FGCOL
             self.bgcol = LP_BGCOL
             self.text = LP_TEXT
+            self.font_size = LP_FONT_SIZE
         else:
             self.max_scale = self.width / LG_RADIUS[-1]
-            #            self.scale = self.width / LG_RADIUS[-1] / 2.5
             self.scale = self.width / LG_RADIUS[-1] / 4
             self.radius = LG_RADIUS
             self.fgcol = LG_FGCOL
             self.bgcol = LG_BGCOL
             self.text = LG_TEXT
+            self.font_size = LG_FONT_SIZE
 
         self.tracker = tracker.Tracker(tracker_history_seconds, tracker_fps)
-        # TODO: WHY /2?
-        self.tracker.set_target_scale(self.get_black_radius() / 2)
+        self.tracker.set_target_scale(self.get_black_radius())
 
     def _draw_shot(self, x, y, color):
         r = SHOT_RADIUS * self.scale
@@ -133,8 +135,7 @@ class Target:
     def _draw_num(self, radius, radius2, fgcolor, mystring):
         if mystring == "":
             return
-        # font = pygame.font.Font("freesansbold.ttf", 15)
-        font = pygame.font.Font("freesansbold.ttf", int(80 * self.scale))
+        font = pygame.font.Font("freesansbold.ttf", int(self.font_size * self.scale))
         text_surf = font.render(mystring, True, fgcolor)
         w, h = text_surf.get_size()
         # right
@@ -202,20 +203,40 @@ class Target:
     #    def set_scale_factor(self, factor):
     #        self.scale_factor = factor
 
-    def draw(self):
+    def draw(self, draw_trail=True):
         self.surf = pygame.Surface((self.width, self.height))
-
-        # self.scale = self.width / LG_RADIUS[-1] / 2.5
 
         self.surf.fill((255, 255, 255))
 
+        # draw the target background
         for r in range(len(self.radius) - 1, -1, -1):
             self._draw_circle(self.radius[r], self.fgcol[r], self.bgcol[r], 2)
             self._draw_num(
                 self.radius[r], self.radius[r - 1], self.fgcol[r - 1], self.text[r]
             )
 
+        # draw the trail
+        if draw_trail:
+            self._draw_trail()
+
         return self.surf
+
+    def _draw_trail(self):
+        allpos = self.get_all_positions(scaled=True)
+
+        # TODO: arbitrary - to be changed
+        maxlen = 200
+
+        if len(allpos) > 2:
+            l = lines.Lines(allpos)
+            # origin
+            l.set_origin(lines.vec2d(self.center, self.center))
+
+            # color
+            l.set_line_len_color_gradient((0, 255, 0), (255, 0, 0), maxlen)
+
+            # draw
+            l.draw_lines(self.surf, thickness=3, scale=self.scale)
 
     def get_black_radius(self):
         r = 0
@@ -224,7 +245,8 @@ class Target:
         else:
             r = self.radius[5]
 
-        return self.width / LG_RADIUS[-1] * r / 2.5
+        return r
+        # return self.width / LG_RADIUS[-1] * r / 2.5
 
     def draw_center(self, limit=0):
         oldx = None
@@ -244,11 +266,9 @@ class Target:
                     + hex(min(255, i))[2:].zfill(2)
                     + hex(max(0, 255 - i))[2:].zfill(2)
                 )
-                #                print(color)
                 self._draw_line(
                     oldx // i, oldy // i, x // (i + 1), y // (i + 1), color, 3
                 )
-                #                print(oldx//i, oldy//i, x//(i+1), y//(i+1), i)
                 oldx = x
                 oldy = y
             else:
@@ -278,11 +298,6 @@ class Target:
             n += 1
             self.draw_center(n)
             oldts = shot.date
-
-    #            if max(x, y) > self.scale:
-    #                self.scale = self.width/max(x,y)
-    #                self.scale = max(x,y)
-    #            self.scale = self.max_scale/LG_RADIUS[-1] /2.5
 
     def add_shot(self, shot):
         self.shots.append(shot)

@@ -136,9 +136,6 @@ class Camera:
         newframe = frame[
             start_y : (start_y + crop_size[1]), start_x : (start_x + crop_size[0])
         ]
-        #        print(
-        #            f"shape comparison: {np.shape(frame)} - {np.shape(newframe)}  start: ({start_x}, {start_y}) - crop size({crop_size}) - {np.shape(frame)}"
-        #        )
         return newframe
 
     def check_and_update_target(self, pos, radius):
@@ -167,8 +164,6 @@ class Camera:
         # ToDo: rename?
         # convert img to grayscale
         self.gray_frame = cv2.cvtColor(self.raw_frame, cv2.COLOR_RGB2GRAY)
-        print(f"frame size during detection time: {np.shape(self.gray_frame)}")
-        # frame_gray = frame[:, :, 0]
         if self.blur:
             self.gray_frame = cv2.GaussianBlur(self.gray_frame, (3, 3), 0)
 
@@ -178,20 +173,14 @@ class Camera:
         # so the better suitable one can be used
         if self.detect_method == DETECTION_THRESHOLD:
             ret, self.thresh_frame = cv2.threshold(
-                # self.gray_frame, self.gray_threshold, 255, cv2.THRESH_BINARY
                 self.gray_frame,
                 self.gray_threshold,
                 255,
-                # cv2.THRESH_TOZERO,
                 cv2.THRESH_BINARY,
             )
             if self.blur:
                 self.thresh_frame = cv2.GaussianBlur(self.thresh_frame, (3, 3), 0)
-                # self.thresh_frame = cv2.bilateralFilter(self.thresh_frame, 3, 50, 50)
-                # self.thresh_frame = cv2.medianBlur(self.thresh_frame, 1)
-                # self.thresh_frame = cv2.blur(self.thresh_frame, (1, 1))
             self.thresh_frame = cv2.Canny(
-                # image=self.gray_frame, threshold1=50, threshold2=200
                 image=self.thresh_frame,
                 threshold1=self.canny_threshold1,
                 threshold2=self.canny_threshold2,
@@ -199,7 +188,6 @@ class Camera:
             )
         else:
             self.thresh_frame = cv2.Canny(
-                # image=self.gray_frame, threshold1=50, threshold2=200
                 image=self.gray_frame,
                 threshold1=self.canny_threshold1,
                 threshold2=self.canny_threshold2,
@@ -221,6 +209,7 @@ class Camera:
         if self.circles is not None:
             self.circles = np.uint16(np.around(self.circles))
             y, x, r = self.circles[0][0]
+            print(f"ORIGINAL circle details: ({x}, {y}), rad: {r}")
             return self.check_and_update_target([x, y], r)
         #            return True
 
@@ -262,7 +251,6 @@ class CamMicrophone:
         print("Host Api info:")
 
         for i in range(num_devices):
-            #            print(self.mic.get_device_info_by_index(i))
             # if input is possible
             if (
                 self.mic.get_device_info_by_host_api_device_index(host_api_id, i).get(

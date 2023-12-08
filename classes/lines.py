@@ -123,22 +123,15 @@ class Lines:
     def num_vertices(self):
         return len(self.vertices)
 
-    def draw_lines(self, screen, vertices=None, thickness=3):
+    def draw_lines(self, screen, vertices=None, thickness=3, scale=1):
         width, height = screen.get_size()
 
         if vertices is None:
             vertices = self.vertices
 
         for i in range(1, len(self.vertices)):
-            # ja = self.vertices[i-1] + self.origin
-            # b = self.vertices[i] + self.origin
-            a = vertices[i - 1] + self.origin
-            b = vertices[i] + self.origin
-
-            #            print((a.x, a.y), (b.x, b.y))
-
-            #            print (f"({a}) / ({b})")
-            print(f"drawing lines: {a}->{b}")
+            a = (vertices[i - 1] * scale) + self.origin
+            b = (vertices[i] * scale) + self.origin
             pygame.draw.line(
                 screen,
                 self.get_color(a, b),
