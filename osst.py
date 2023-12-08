@@ -24,7 +24,8 @@ import pygame
 import _version
 from classes.target import *
 from classes import camera
-from classes import tracker
+
+# from classes import tracker
 from classes.lines import vec2d
 from classes import disag
 
@@ -140,14 +141,9 @@ class Osst:
         self.disag_server = disag.DisagServer()
         self.disag_server.listen()
 
-        # set up target image
-        win_width, win_height = pygame.display.get_surface().get_size()
-        self.target = Target(win_height, TARGET_TYPE)
-        self.target_center = None
-
         # draw target image
-        self.target_frame = self.target.draw()
-        self.target
+        #        self.target_frame = self.target.draw()
+        #        self.target
 
         self.keep_running = True
         self.pause_capture = False
@@ -163,10 +159,15 @@ class Osst:
 
         # 60 seconds times 30fps = 1800 values
         actual_fps = self.camera.get_fps()
-        self.tracker = tracker.Tracker(HISTORY_SECONDS, int(actual_fps))
+
+        # set up target image
+        win_width, win_height = pygame.display.get_surface().get_size()
+        #        self.tracker = tracker.Tracker(HISTORY_SECONDS, int(actual_fps))
+        self.target = Target(win_height, TARGET_TYPE, HISTORY_SECONDS, int(actual_fps))
+        self.target_center = None
 
         # setting target scale for the  tracker
-        self.tracker.set_target_scale(self.target.get_black_radius() / 2)
+        # self.tracker.set_target_scale(self.target.get_black_radius() / 2)
 
     def _catch_signal(self, sig, frame):
         """
@@ -202,10 +203,10 @@ class Osst:
         if self.target_center is None:
             return
         x, y = self.target_center
-        print(f"draw center: {frame.get_size()}, {x},{y}")
+        #        print(f"draw center: {frame.get_size()}, {x},{y}")
         x *= scale
         y *= scale
-        print(f"draw center: {frame.get_size()}, {x},{y}")
+        #        print(f"draw center: {frame.get_size()}, {x},{y}")
         line_len = 9
         line_color = pygame.Color(0, 255, 255)
         line_thickness = 1
@@ -284,7 +285,8 @@ class Osst:
             min_rad = int(self.camera.target_min_radius * scale)
             max_rad = int(self.camera.target_max_radius * scale)
 
-            self.tracker.set_source_scale(rad)
+            # self.tracker.set_source_scale(rad)
+            self.target.set_tracker_source_scale(rad)
 
             # circle color
             center_color = (255, 0, 0)
@@ -323,9 +325,9 @@ class Osst:
         maxlen = WEBCAM_CROP_HEIGHT // 8
 
         # --- movements
-        allpos = self.tracker.get_all_positions(scaled=True)
-        print(allpos)
-        #        print(f"num positios: {len(allpos)}")
+        # allpos = self.tracker.get_all_positions(scaled=True)
+        allpos = self.target.get_all_positions(scaled=True)
+
         if len(allpos) > 5:
             l = lines.Lines(allpos)
             # origin
@@ -367,8 +369,9 @@ class Osst:
         self.screen.blit(min_max_target_surf, (1100, 900))
 
         # resolution
-        if self.tracker.get_resolution() is not None:
-            l = int(self.tracker.get_resolution() * self.target.scale)
+        # if self.tracker.get_resolution() is not None:
+        if self.target.get_tracker_resolution() is not None:
+            l = int(self.target.get_tracker_resolution() * self.target.scale)
             resolution_surf = pygame.Surface((l, l))
             resolution_surf.fill((0, 0, 200))
             self.screen.blit(resolution_surf, (1400, 900))
@@ -379,7 +382,7 @@ class Osst:
         DEBUG_WINDOW_MIN_Y = 800
 
         fps_surf = self.get_text_box(
-            f"{round(self.fps)} fps | {self.fails_per_second}/{self.circles_per_second} det ko/ok  | {self.camera.hough_param1} H1 | gray_thres {self.camera.gray_threshold}\n resolution: {int(self.tracker.get_resolution())} mm/100 /pixel",
+            f"{round(self.fps)} fps | {self.fails_per_second}/{self.circles_per_second} det ko/ok  | {self.camera.hough_param1} H1 | gray_thres {self.camera.gray_threshold}\n resolution: {int(self.target.get_tracker_resolution())} mm/100 /pixel",
             15,
         )
         self.screen.blit(fps_surf, (DEBUG_WINDOW_MIN_X + 10, DEBUG_WINDOW_MIN_Y + 30))
@@ -439,6 +442,9 @@ class Osst:
                     self.camera.detect_method = 1 - self.camera.detect_method
             # mouse events
             elif event.type == pygame.MOUSEBUTTONDOWN:
+                # only act on main button presses so far, else, continue
+                if not pygame.mouse.get_pressed()[0]:
+                    continue
                 # TODO: This is a nightmare!
                 # set offset to mouse pos
                 pos = pygame.mouse.get_pos()
@@ -448,7 +454,6 @@ class Osst:
                 #                quit()
                 # scale = SIDEPANEL_WIDTH / WEBCAM_CROP_WIDTH
                 scale = width / WEBCAM_CROP_WIDTH
-                print(win_width, win_height, scale)
 
                 # scaled offset
                 scaled_offset_x = self.target.width  # / scale
@@ -515,17 +520,11 @@ class Osst:
             # detect circles
             circle_found = self.camera.detect_circles()
             if circle_found:
-                #                print(self.camera.target_pos)
                 if self.target_center is not None:
                     x = self.target_center[0] - self.camera.target_pos[0]
                     y = self.target_center[1] - self.camera.target_pos[1]
-                    #                    print(
-                    #                        f"target center: {self.target_center} vs current pos {self.camera.target_pos}"
-                    # )
-                    print(
-                        f"Target center: {self.target_center}, current pos: {self.camera.target_pos}, relative: [{x}, {y}]"
-                    )
-                    self.tracker.add_position([x, y])
+                    #                    print( f"Target center: {self.target_center}, current pos: {self.camera.target_pos}, relative: [{x}, {y}]")
+                    self.target.add_position([x, y])
 
                 #                    print(self.tracker.get_current_position())
                 detected_counter += 1

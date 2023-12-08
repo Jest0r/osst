@@ -27,14 +27,15 @@ class Tracker:
             return
         pos_x = (pixelpos[X] + self.offset[X]) * (self.target_scale / self.source_scale)
         pos_y = (pixelpos[Y] + self.offset[Y]) * (self.target_scale / self.source_scale)
+
         #        print(f"Pixelpos: {pixelpos} {[pos_x, pos_y]}, offset: {self.offset}")
-        #return [pos_x, pos_y]
+        # return [pos_x, pos_y]
         return lines.vec2d(pos_x, pos_y)
 
     def reset(self):
         """reset to a fresh start"""
-#        self.pos = [[0, 0] for i in range(self.num_elements)]
-        self.pos = [lines.vec2d(0,0) for i in range(self.num_elements)]
+        #        self.pos = [[0, 0] for i in range(self.num_elements)]
+        self.pos = [lines.vec2d(0, 0) for i in range(self.num_elements)]
         self.pos_index = -1
         self.num_recorded = 0
 

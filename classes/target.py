@@ -5,6 +5,7 @@ import pygame
 
 # import numpy
 from . import lines
+from . import tracker
 
 TARGET_BGCOL = "#ffffff"
 TARGET_FGCOL = "#000000"
@@ -47,11 +48,22 @@ SHOT_RADIUS = 225  # 4.5mm caliber
 LG_SCALE = 0.15
 LP_SCALE = 0.05
 
+DEFAULT_HISTORY_SECONDS = 10
+
+DISKTYPE_LP = 0
+DISKTYPE_LG = 1
+
 pygame.init()
 
 
 class Target:
-    def __init__(self, dimensions, disktype="lp"):
+    def __init__(
+        self,
+        dimensions,
+        disktype=DISKTYPE_LG,
+        tracker_history_seconds=DEFAULT_HISTORY_SECONDS,
+        tracker_fps=30,
+    ):
         self.width = dimensions
         self.height = dimensions
         self.center = dimensions // 2
@@ -61,9 +73,9 @@ class Target:
         #        self.screen = pygame.display.set_mode((self.width, self.height), depth=32)
 
         self.shots = []
-#        self.scale_factor = 1
+        #        self.scale_factor = 1
 
-        if self.disktype == "lp":
+        if self.disktype == DISKTYPE_LP:
             self.max_scale = LP_SCALE
             self.scale = LP_SCALE
             self.radius = LP_RADIUS
@@ -72,12 +84,16 @@ class Target:
             self.text = LP_TEXT
         else:
             self.max_scale = self.width / LG_RADIUS[-1]
-#            self.scale = self.width / LG_RADIUS[-1] / 2.5
+            #            self.scale = self.width / LG_RADIUS[-1] / 2.5
             self.scale = self.width / LG_RADIUS[-1] / 4
             self.radius = LG_RADIUS
             self.fgcol = LG_FGCOL
             self.bgcol = LG_BGCOL
             self.text = LG_TEXT
+
+        self.tracker = tracker.Tracker(tracker_history_seconds, tracker_fps)
+        # TODO: WHY /2?
+        self.tracker.set_target_scale(self.get_black_radius() / 2)
 
     def _draw_shot(self, x, y, color):
         r = SHOT_RADIUS * self.scale
@@ -117,8 +133,8 @@ class Target:
     def _draw_num(self, radius, radius2, fgcolor, mystring):
         if mystring == "":
             return
-        #font = pygame.font.Font("freesansbold.ttf", 15)
-        font = pygame.font.Font("freesansbold.ttf",  int(80 *self.scale))
+        # font = pygame.font.Font("freesansbold.ttf", 15)
+        font = pygame.font.Font("freesansbold.ttf", int(80 * self.scale))
         text_surf = font.render(mystring, True, fgcolor)
         w, h = text_surf.get_size()
         # right
@@ -157,23 +173,39 @@ class Target:
                 - 0.5 * h,
             ),
         )
-    
+
+    def set_tracker_source_scale(self, rad):
+        self.tracker.set_source_scale(rad)
+
+    def set_tracker_target_scale(self, rad):
+        self.tracker.set_target_scale(rad)
+
+    def get_tracker_resolution(self):
+        return self.tracker.get_resolution()
+
+    def add_position(self, pos):
+        self.tracker.add_position(pos)
+
+    def get_all_positions(self, scaled=True):
+        return self.tracker.get_all_positions(scaled)
+
     def scale_out(self, stepsize=0.01):
         self.scale += stepsize
-        print(self.scale)
+
+    #        print(self.scale)
 
     def scale_in(self, stepsize=0.01):
         self.scale = max(0, self.scale - stepsize)
-        print(self.scale)
 
+    #        print(self.scale)
 
-#    def set_scale_factor(self, factor):
-#        self.scale_factor = factor
-        
+    #    def set_scale_factor(self, factor):
+    #        self.scale_factor = factor
+
     def draw(self):
         self.surf = pygame.Surface((self.width, self.height))
 
-        #self.scale = self.width / LG_RADIUS[-1] / 2.5
+        # self.scale = self.width / LG_RADIUS[-1] / 2.5
 
         self.surf.fill((255, 255, 255))
 
@@ -187,13 +219,12 @@ class Target:
 
     def get_black_radius(self):
         r = 0
-        if self.disktype == "lp":
+        if self.disktype == DISKTYPE_LP:
             r = self.radius[4]
         else:
             r = self.radius[5]
 
         return self.width / LG_RADIUS[-1] * r / 2.5
-
 
     def draw_center(self, limit=0):
         oldx = None
