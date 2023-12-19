@@ -35,9 +35,11 @@
             <property name="orientation">horizontal</property>
             <child>
               <object class="GtkFrame">
+                <property name="width-request">300</property>
                 <child>
                   <object class="GtkBox">
                     <property name="orientation">vertical</property>
+                    <property name="width-request">300</property>
                     <child>
                       <object class="GtkLabel" id="sidebar_label">
                         <property name="justify">center</property>
@@ -62,17 +64,20 @@
                   <object class="GtkPaned">
                     <child>
                       <object class="GtkBox">
+                        <property name="halign">center</property>
                         <child>
                           <object class="GtkDrawingArea" id="target_surf">
                             <!-- <signal name="scroll" handler="target_surf__scroll"/>  -->
-                            <property name="content-height">800</property>
-                            <property name="content-width">800</property>
+                            <property name="content-height">400</property>
+                            <property name="content-width">400</property>
+                            <property name="halign">center</property>
                           </object>
                         </child>
                       </object>
                     </child>
                     <child>
                       <object class="GtkBox">
+                        <property name="halign">end</property>
                         <property name="orientation">vertical</property>
                         <child>
                           <object class="GtkDrawingArea" id="preview1">

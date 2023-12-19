@@ -1,0 +1,79 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<!DOCTYPE cambalache-project SYSTEM "cambalache-project.dtd">
+<cambalache-project version="0.13.1" target_tk="gtk-4.0">
+  <ui>
+	(1,1,"mainwin_gtk.ui","mainwin_gtk.ui",None,None,None,None,None,None,None)
+  </ui>
+  <ui_library>
+	(1,"Adw","1.0",None),
+	(1,"gio","2.0",None),
+	(1,"gtk","4.0",None),
+	(1,"libadwaita","1.0",None)
+  </ui_library>
+  <object>
+	(1,1,"AdwApplicationWindow","OsstWindow",None,None,None,None,None,None),
+	(1,20,"(external)","14",None,None,None,None,None,None),
+	(1,25,"(external)","20",None,None,None,None,None,None),
+	(1,27,"(external)","25",None,None,None,None,None,None),
+	(1,29,"(external)","27",None,None,None,None,None,None),
+	(1,32,"GtkEventControllerKey","key_events",None,None,None,None,-1,None),
+	(1,34,"GtkEventControllerScroll","scroll_control",None,None,None,None,-1,None),
+	(1,35,"GtkGestureClick","click_control",None,None,None,None,-1,None),
+	(1,36,"GtkGestureDrag","drag_control",None,None,None,None,-1,None),
+	(1,76,"GtkBox",None,1,None,None,None,None,None),
+	(1,77,"GtkHeaderBar","header_bar",76,None,None,None,None,None),
+	(1,78,"GtkButton","open_button",77,None,"start",None,None,None),
+	(1,79,"GtkMenuButton",None,77,None,"end",None,1,None),
+	(1,80,"GtkPaned","split_view",76,None,None,None,1,None),
+	(1,85,"GtkFrame","mainwin_frame",80,None,None,None,1,None),
+	(1,86,"GtkPaned",None,85,None,"label",None,None,None),
+	(1,88,"GtkBox",None,86,None,None,None,2,None),
+	(1,89,"GtkDrawingArea","preview1",88,None,None,None,None,None),
+	(1,90,"GtkDrawingArea","preview2",88,None,None,None,1,None),
+	(1,91,"GtkBox",None,86,None,None,None,None,None),
+	(1,92,"GtkDrawingArea","target_surf",91,None,None,None,None,None),
+	(1,96,"GtkFrame",None,80,None,None,None,None,None),
+	(1,97,"GtkBox",None,96,None,None,None,None,None),
+	(1,98,"GtkLabel","sidebar_label",97,None,None,None,None,None),
+	(1,99,"GtkButton",None,97,None,None,None,1,None)
+  </object>
+  <object_property>
+	(1,1,"GtkWindow","default-height","700",None,None,None,None,None,None,None,None,None),
+	(1,1,"GtkWindow","default-width","1300",None,None,None,None,None,None,None,None,None),
+	(1,32,"GtkEventController","name","KeyEventController",None,None,None,None,None,None,None,None,None),
+	(1,34,"GtkEventControllerScroll","flags","vertical",None,None,None,None,None,None,None,None,None),
+	(1,76,"GtkOrientable","orientation","vertical",None,None,None,None,None,None,None,None,None),
+	(1,78,"GtkButton","icon-name","sidebar-show-right-rtl-symbolic",None,None,None,None,None,None,None,None,None),
+	(1,78,"GtkButton","label","Toggle Sidebar",None,None,None,None,None,None,None,None,None),
+	(1,79,"GtkMenuButton","icon-name","open-menu-symbolic",None,None,None,None,None,None,None,None,None),
+	(1,79,"GtkMenuButton","primary","True",None,None,None,None,None,None,None,None,None),
+	(1,79,"GtkWidget","tooltip-text","Menu","yes",None,None,None,None,None,None,None,None),
+	(1,80,"GtkOrientable","orientation","horizontal",None,None,None,None,None,None,None,None,None),
+	(1,88,"GtkOrientable","orientation","vertical",None,None,None,None,None,None,None,None,None),
+	(1,88,"GtkWidget","halign","end",None,None,None,None,None,None,None,None,None),
+	(1,89,"GtkDrawingArea","content-height","300",None,None,None,None,None,None,None,None,None),
+	(1,89,"GtkDrawingArea","content-width","400",None,None,None,None,None,None,None,None,None),
+	(1,90,"GtkDrawingArea","content-height","300",None,None,None,None,None,None,None,None,None),
+	(1,90,"GtkDrawingArea","content-width","400",None,None,None,None,None,None,None,None,None),
+	(1,91,"GtkWidget","halign","center",None,None,None,None,None,None,None,None,None),
+	(1,92,"GtkDrawingArea","content-height","400",None," &lt;signal name=\"scroll\" handler=\"target_surf__scroll\"/&gt;  ",None,None,None,None,None,None,None),
+	(1,92,"GtkDrawingArea","content-width","400",None,None,None,None,None,None,None,None,None),
+	(1,92,"GtkWidget","halign","center",None,None,None,None,None,None,None,None,None),
+	(1,96,"GtkWidget","width-request","300",None,None,None,None,None,None,None,None,None),
+	(1,97,"GtkOrientable","orientation","vertical",None,None,None,None,None,None,None,None,None),
+	(1,97,"GtkWidget","width-request","300",None,None,None,None,None,None,None,None,None),
+	(1,98,"GtkLabel","justify","center",None,None,None,None,None,None,None,None,None),
+	(1,98,"GtkLabel","label","This is a sidebar",None,None,None,None,None,None,None,None,None),
+	(1,99,"GtkButton","label","click",None,None,None,None,None,None,None,None,None)
+  </object_property>
+  <object_signal>
+	(3,1,78,"GtkButton","clicked","split_view__toggle_sidebar",None,None,None,None,None)
+  </object_signal>
+  <object_data>
+	(1,98,"GtkWidget",1,1,None,None,None,None,None,None),
+	(1,98,"GtkWidget",2,2,None,1,None,None,None,None)
+  </object_data>
+  <object_data_arg>
+	(1,98,"GtkWidget",2,2,"name","title-3")
+  </object_data_arg>
+</cambalache-project>
