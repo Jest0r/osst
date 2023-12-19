@@ -1,0 +1,108 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<!-- Created with Cambalache 0.16.0 -->
+<interface>
+  <!-- interface-name mainwin_gtk.ui -->
+  <requires lib="Adw" version="1.0"/>
+  <requires lib="gio" version="2.0"/>
+  <requires lib="gtk" version="4.0"/>
+  <requires lib="libadwaita" version="1.0"/>
+  <template class="OsstWindow" parent="AdwApplicationWindow">
+    <property name="default-height">700</property>
+    <property name="default-width">1300</property>
+    <child>
+      <object class="GtkBox">
+        <property name="orientation">vertical</property>
+        <child>
+          <object class="GtkHeaderBar" id="header_bar">
+            <child type="start">
+              <object class="GtkButton" id="open_button">
+                <property name="icon-name">sidebar-show-right-rtl-symbolic</property>
+                <property name="label">Toggle Sidebar</property>
+                <signal name="clicked" handler="split_view__toggle_sidebar"/>
+              </object>
+            </child>
+            <child type="end">
+              <object class="GtkMenuButton">
+                <property name="icon-name">open-menu-symbolic</property>
+                <property name="primary">True</property>
+                <property name="tooltip-text" translatable="yes">Menu</property>
+              </object>
+            </child>
+          </object>
+        </child>
+        <child>
+          <object class="GtkPaned" id="split_view">
+            <property name="orientation">horizontal</property>
+            <child>
+              <object class="GtkFrame">
+                <child>
+                  <object class="GtkBox">
+                    <property name="orientation">vertical</property>
+                    <child>
+                      <object class="GtkLabel" id="sidebar_label">
+                        <property name="justify">center</property>
+                        <property name="label">This is a sidebar</property>
+                        <style>
+                          <class name="title-3"/>
+                        </style>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkButton">
+                        <property name="label">click</property>
+                      </object>
+                    </child>
+                  </object>
+                </child>
+              </object>
+            </child>
+            <child>
+              <object class="GtkFrame" id="mainwin_frame">
+                <child type="label">
+                  <object class="GtkPaned">
+                    <child>
+                      <object class="GtkBox">
+                        <child>
+                          <object class="GtkDrawingArea" id="target_surf">
+                            <!-- <signal name="scroll" handler="target_surf__scroll"/>  -->
+                            <property name="content-height">800</property>
+                            <property name="content-width">800</property>
+                          </object>
+                        </child>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkBox">
+                        <property name="orientation">vertical</property>
+                        <child>
+                          <object class="GtkDrawingArea" id="preview1">
+                            <property name="content-height">300</property>
+                            <property name="content-width">400</property>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkDrawingArea" id="preview2">
+                            <property name="content-height">300</property>
+                            <property name="content-width">400</property>
+                          </object>
+                        </child>
+                      </object>
+                    </child>
+                  </object>
+                </child>
+              </object>
+            </child>
+          </object>
+        </child>
+      </object>
+    </child>
+  </template>
+  <object class="GtkEventControllerKey" id="key_events">
+    <property name="name">KeyEventController</property>
+  </object>
+  <object class="GtkEventControllerScroll" id="scroll_control">
+    <property name="flags">vertical</property>
+  </object>
+  <object class="GtkGestureClick" id="click_control"/>
+  <object class="GtkGestureDrag" id="drag_control"/>
+</interface>
