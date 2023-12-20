@@ -7,7 +7,7 @@
   <requires lib="gtk" version="4.0"/>
   <requires lib="libadwaita" version="1.0"/>
   <template class="OsstWindow" parent="AdwApplicationWindow">
-    <property name="default-height">700</property>
+    <property name="default-height">500</property>
     <property name="default-width">1300</property>
     <child>
       <object class="GtkBox">
@@ -37,21 +37,33 @@
               <object class="GtkFrame">
                 <property name="width-request">300</property>
                 <child>
-                  <object class="GtkBox">
-                    <property name="orientation">vertical</property>
-                    <property name="width-request">300</property>
+                  <object class="AdwPreferencesPage" id="pref_page">
+                    <property name="name">Preferences</property>
                     <child>
-                      <object class="GtkLabel" id="sidebar_label">
-                        <property name="justify">center</property>
-                        <property name="label">This is a sidebar</property>
-                        <style>
-                          <class name="title-3"/>
-                        </style>
-                      </object>
-                    </child>
-                    <child>
-                      <object class="GtkButton">
-                        <property name="label">click</property>
+                      <object class="AdwPreferencesGroup" id="target_prefs">
+                        <property name="title">Target Type</property>
+                        <child>
+                          <object class="AdwPreferencesRow" id="target_type">
+                            <property name="title">target_type</property>
+                            <child>
+                              <object class="GtkBox">
+                                <property name="homogeneous">True</property>
+                                <child>
+                                  <object class="GtkToggleButton" id="target_type_lp">
+                                    <property name="group">target_type_lg</property>
+                                    <property name="label">LP</property>
+                                  </object>
+                                </child>
+                                <child>
+                                  <object class="GtkToggleButton" id="target_type_lg">
+                                    <property name="active">True</property>
+                                    <property name="label">LG</property>
+                                  </object>
+                                </child>
+                              </object>
+                            </child>
+                          </object>
+                        </child>
                       </object>
                     </child>
                   </object>
@@ -60,41 +72,64 @@
             </child>
             <child>
               <object class="GtkFrame" id="mainwin_frame">
-                <child type="label">
+                <property name="child">
                   <object class="GtkPaned">
-                    <child>
-                      <object class="GtkBox">
-                        <property name="halign">center</property>
-                        <child>
+                    <property name="end-child">
+                      <object class="GtkFrame" id="previews">
+                        <property name="child">
+                          <object class="GtkBox">
+                            <property name="orientation">vertical</property>
+                            <child>
+                              <object class="GtkStackSwitcher" id="preview_stack_sw">
+                                <property name="halign">start</property>
+                                <property name="stack">preview_stack</property>
+                              </object>
+                            </child>
+                            <child>
+                              <object class="GtkStack" id="preview_stack">
+                                <property name="halign">start</property>
+                                <child>
+                                  <object class="GtkStackPage">
+                                    <property name="child">
+                                      <object class="GtkDrawingArea" id="preview1_surf">
+                                        <property name="content-height">300</property>
+                                        <property name="content-width">400</property>
+                                      </object>
+                                    </property>
+                                    <property name="name">P1</property>
+                                    <property name="title">Preview 1</property>
+                                  </object>
+                                </child>
+                                <child>
+                                  <object class="GtkStackPage">
+                                    <property name="child">
+                                      <object class="GtkDrawingArea" id="preview2_surf">
+                                        <property name="content-height">300</property>
+                                        <property name="content-width">400</property>
+                                      </object>
+                                    </property>
+                                    <property name="name">P2</property>
+                                    <property name="title">Preview 2</property>
+                                  </object>
+                                </child>
+                              </object>
+                            </child>
+                          </object>
+                        </property>
+                      </object>
+                    </property>
+                    <property name="start-child">
+                      <object class="GtkFrame">
+                        <property name="child">
                           <object class="GtkDrawingArea" id="target_surf">
-                            <!-- <signal name="scroll" handler="target_surf__scroll"/>  -->
-                            <property name="content-height">400</property>
-                            <property name="content-width">400</property>
-                            <property name="halign">center</property>
+                            <property name="content-height">800</property>
+                            <property name="content-width">800</property>
                           </object>
-                        </child>
+                        </property>
                       </object>
-                    </child>
-                    <child>
-                      <object class="GtkBox">
-                        <property name="halign">end</property>
-                        <property name="orientation">vertical</property>
-                        <child>
-                          <object class="GtkDrawingArea" id="preview1">
-                            <property name="content-height">300</property>
-                            <property name="content-width">400</property>
-                          </object>
-                        </child>
-                        <child>
-                          <object class="GtkDrawingArea" id="preview2">
-                            <property name="content-height">300</property>
-                            <property name="content-width">400</property>
-                          </object>
-                        </child>
-                      </object>
-                    </child>
+                    </property>
                   </object>
-                </child>
+                </property>
               </object>
             </child>
           </object>
