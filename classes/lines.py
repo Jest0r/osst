@@ -1,4 +1,4 @@
-import pygame
+from gi.repository import Gdk
 import numpy as np
 from scipy import interpolate
 
@@ -91,56 +91,86 @@ class Lines:
             gradient_point = min(x.distance(y) / self.max_gradient_len, 1)
 
             # r g b absolute values
-            r = min(self.min_col[R], self.max_col[R]) + int(
-                gradient_point * max(self.min_col[R], self.max_col[R])
+            r = (
+                min(self.min_col[R], self.max_col[R])
+                + gradient_point * max(self.min_col[R], self.max_col[R])
                 - min(self.min_col[R], self.max_col[R])
             )
-            g = min(self.min_col[G], self.max_col[G]) + int(
-                gradient_point * max(self.min_col[G], self.max_col[G])
+            g = (
+                min(self.min_col[G], self.max_col[G])
+                + gradient_point * max(self.min_col[G], self.max_col[G])
                 - min(self.min_col[G], self.max_col[G])
             )
-            b = min(self.min_col[B], self.max_col[B]) + int(
-                gradient_point * max(self.min_col[B], self.max_col[B])
+            b = (
+                min(self.min_col[B], self.max_col[B])
+                + gradient_point * max(self.min_col[B], self.max_col[B])
                 - min(self.min_col[B], self.max_col[B])
             )
 
             # real values
             # ToDo - can that be done in the main calc?
             if self.min_col[R] > self.max_col[R]:
-                r = 255 - r
+                r = 1 - r
             if self.min_col[G] > self.max_col[G]:
-                g = 255 - g
+                g = 1 - g
             if self.min_col[B] > self.max_col[B]:
-                b = 255 - b
+                b = 1 - b
 
             return (r, g, b)
         else:
             # invert color for debugging
-            self.color = (255 - self.color[R], 255 - self.color[G], 255 - self.color[B])
+            self.color = (1 - self.color[R], 1 - self.color[G], 1 - self.color[B])
 
             return self.color
 
     def num_vertices(self):
         return len(self.vertices)
 
-    def draw_lines(self, screen, vertices=None, thickness=3, scale=1):
-        width, height = screen.get_size()
-
+    def draw_lines(
+        self,
+        area,
+        c,
+        width,
+        height,
+        center,
+        vertices=None,
+        thickness=3,
+        scale=1,
+        trail_fade=False,
+    ):
+        center = vec2d(center[0], center[1])
         if vertices is None:
             vertices = self.vertices
 
-        for i in range(1, len(self.vertices)):
-            a = (vertices[i - 1] * scale) + self.origin
-            b = (vertices[i] * scale) + self.origin
-            pygame.draw.line(
-                screen,
-                self.get_color(a, b),
-                (a.x, a.y),
-                (b.x, b.y),
-                thickness,
-            )
+        #        c.set_source_rgb(1, 0, 0)
+        c.move_to(vertices[0].x, vertices[0].y)
+        oldv = vertices[0]
+        for i, v in enumerate(vertices, start=1):
+            r, g, b = self.get_color(oldv, v)
+            if trail_fade:
+                a = 1 - (i / len(vertices))
+            else:
+                a = 1
+            c.set_source_rgba(r, g, b, a)
+            pos = v - center
+            c.line_to(pos.x, pos.y)
+            oldv = v
+            c.stroke()
+            c.move_to(pos.x, pos.y)
 
-    def draw_curve(self, screen, vertices=None, num_points=None, thickness=1):
+    def draw_curve(
+        self,
+        area,
+        c,
+        width,
+        height,
+        center,
+        vertices=None,
+        num_points=None,
+        thickness=1,
+        scale=1,
+        trail_fade=False,
+    ):
         if vertices is None:
             vertices = self.vertices
 
@@ -171,20 +201,31 @@ class Lines:
                 s=0,
             )
         except ValueError:
-            print(bspline_vertices)
+            #            print(bspline_vertices)
             raise
 
         u = np.linspace(0, 1, num=num_points)
 
         i_coords = interpolate.splev(u, tck)
         interpolated_vertices = [
-            (i_coords[X][i] + self.origin.x, i_coords[Y][i] + self.origin.y)
-            for i in range(len(i_coords[0]))
+            vec2d(i_coords[X][i], i_coords[Y][i]) for i in range(len(i_coords[0]))
         ]
-        pygame.draw.lines(screen, color, False, interpolated_vertices, thickness)
+        self.draw_lines(
+            area,
+            c,
+            width,
+            height,
+            center,
+            interpolated_vertices,
+            thickness,
+            scale,
+            trail_fade=False,
+        )
 
 
 def main():
+    import pygame
+
     pygame.init()
     screen = pygame.display.set_mode((1024, 768))
 
@@ -200,7 +241,7 @@ def main():
     ]
 
     lines = Lines(control_points)
-    lines.set_line_len_color_gradient((0, 255, 0), (255, 0, 0), 20)
+    lines.set_line_len_color_gradient((0, 1, 0), (1, 0, 0), 20)
 
     ### The currently selected point
     selected = None

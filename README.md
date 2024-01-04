@@ -56,3 +56,12 @@ Currently, the 3D models are exclusively for the Logitech C270 camera, and a cli
 Some cameras stream errors on stderr. This can be ignored, or the osst bash file can be amended to redirecct stdout to /dev/null.
 ! Attention: This will also disable the printing of any python exception
 
+## Testbed
+
+### diagrams
+
+``` mermaid
+graph TD;
+    A-->B;
+    A-->C;
+```

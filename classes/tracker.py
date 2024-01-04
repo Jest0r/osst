@@ -14,6 +14,8 @@ class Tracker:
     """pos should be recorded in mm/100"""
 
     def __init__(self, seconds, fps):
+        self.seconds = seconds
+        self.fps = fps
         self.num_elements = seconds * fps
         self.reset()
 
@@ -25,13 +27,15 @@ class Tracker:
     def _pixel_to_pos(self, pixelpos):
         if self.target_scale is None or self.source_scale is None:
             return
-        pos_x = (pixelpos[X] + self.offset[X]) * (self.target_scale / self.source_scale)
-        pos_y = (pixelpos[Y] + self.offset[Y]) * (self.target_scale / self.source_scale)
+        pos_x = -(pixelpos[X] - self.offset[X]) * self.get_resolution()
+        pos_y = -(pixelpos[Y] - self.offset[Y]) * self.get_resolution()
 
-        print(
-            f"Target/source scale: {self.target_scale}/{self.source_scale} Pixelpos: {pixelpos} -> {[pos_x, pos_y]}, offset: {self.offset}"
-        )
         return lines.vec2d(pos_x, pos_y)
+
+    def set_history_seconds(self, seconds):
+        self.seconds = seconds
+        self.num_elements = self.fps * self.seconds
+        self.reset()
 
     def reset(self):
         """reset to a fresh start"""
@@ -44,7 +48,8 @@ class Tracker:
 
         # advance index
         # convert pixelpos to real pos and add it
-        print(f"adding position {pixelpos}")
+
+        adj_pos = [pixelpos[0] - self.offset[0], pixelpos[1] - self.offset[1]]
         self.pos_index = (self.pos_index + 1) % len(self.pos)
         self.pos[self.pos_index] = self._pixel_to_pos(pixelpos)
         # increase counter, until all pos are filled
@@ -60,6 +65,9 @@ class Tracker:
 
     def get_current_position(self):
         return self.pos[self.pos_index]
+
+    def get_offset(self):
+        return self.offset
 
     def set_target_scale(self, scale):
         """ "Spiegel" size in mm/1000"""
