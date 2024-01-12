@@ -32,7 +32,7 @@ class DisagServer:
     def listen(self):
         self._connect()
         # sending the parent run flag to the thread as 'keep alive' signal
-        self.listen = threading.Thread(target=self.listening_thread, args=(self.run))
+        self.listen = threading.Thread(target=self.listening_thread, args=(self.run,))
         self.listen.start()
 
     def _connect(self):
@@ -56,7 +56,6 @@ class DisagServer:
                 continue
 
     def get_data(self):
-        data = None
         if self.data is not None:
             data = self.data
             self.data = None

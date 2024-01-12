@@ -2,7 +2,7 @@
 import datetime
 import os
 import json
-from . import csv
+#from . import csv
 #import math
 
 
@@ -12,7 +12,55 @@ SESSION_BREAK = 3600
 
 
 class Shot():
-    def __init__(self, csvdata):
+    def __init__(self, shotdata, json=False):
+        self.csvdata = None
+        self.shooter = None
+        self.date = None
+        self.competition = None
+        self.shotdata = None
+        self.shot = None
+        self.practice = True
+        self.uid = None
+
+
+        if json is True:
+            self._get_shot_from_json(shotdata)
+        else:
+            self._get_shot_from_csv(shotdata)
+
+    def _get_shot_from_json(self, raw_json_data):
+        json_data = json.loads(raw_json_data)
+        if json_data['MessageVerb'] == 'Shot':
+            print(".bla")
+
+            c = json_data['Objects'][0]
+            self.shooter = c['Shooter']
+            #self.date = datetime.datetime.strptime(c['ShotDateTime'], "%Y-%m-%d %H:%M:%S.000").isoformat()
+            self.date = datetime.datetime.fromisoformat(c['ShotDateTime'])
+    #            print(f"jsonshot: {self.shotdata}")
+            self.competition = None
+            self.shotdata = c
+            self.shot = {}
+            self.practice = True
+            self.uuid = c['UUID'].lower()
+
+            if type(self.shotdata) == list:
+                for s in self.shotdata[1:-1]:
+                    if "=" not in s:
+                        continue
+                    k,v = s.split("=")
+                    self.shot.update({k:v.strip("\"")})
+            else:
+                self.practice = True
+                self.shot['disktyp'] = self.shotdata['DiscType'].lower()
+                self.shot['teiler'] = self.shotdata['Distance']
+                self.shot['x'] = self.shotdata['X']
+                self.shot['y'] = self.shotdata['Y']
+                self.shot['shot'] = self.shotdata['Count']
+                self.shot['full'] = self.shotdata['FullValue']
+            self.shot['dec'] = self.shotdata['DecValue']
+
+    def _get_shot_from_csv(self, csvdata):
         self.csvdata = csvdata
         self.shooter = csvdata.fidShooters
         self.date = datetime.datetime.fromisoformat(csvdata.shottimestamp)
@@ -74,6 +122,9 @@ class Shot():
 
     def dec(self):
         return float(self.shot['dec'].replace(",","."))
+
+    def pos(self):
+        return (self.shot['x'], self.shot['y'])
     
     def teiler(self):
         return float(self.shot['teiler'])
@@ -398,6 +449,7 @@ class Shots():
         json_data = json.loads(rawline)
 
         if json_data['MessageVerb'] == 'Shot':
+            print(".bla")
 
             c = json_data['Objects'][0]
             if c['UUID'].lower() in self.uuids:

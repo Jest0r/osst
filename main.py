@@ -42,6 +42,7 @@ from gi.repository import Gtk, Gio, Adw, GLib
 from windows.mainwin import OsstWindow
 
 from classes.target import *
+from classes.shots import Shot, Shots
 from classes import disag
 from classes import camera
 
@@ -187,6 +188,10 @@ class OsstApplication(Adw.Application):
         if self.use_disag and self.disag_server.data_received():
             d = self.disag_server.get_data()
             print("Disag server found shot")
+            shot = Shot(d, json=True)
+            self.target.add_shot(shot)
+            x,y = shot.pos()
+            print(shot.pos())
 
         circle_found = self.camera.detect_circles()
         # if there is a circle, record the target position

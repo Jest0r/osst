@@ -113,8 +113,15 @@ class Target:
         self.line_style = LINESTYLE_LINES
         self.trail_fade = True
 
-    # def _draw_shot(self, x, y, color):
-    #     r = SHOT_RADIUS * self.scale
+    def _draw_shot(self, c, x,y, color):
+    
+        c.move_to(x,y)
+        c.set_source_rgb(0,1,1)
+        r = SHOT_RADIUS 
+        c.arc(x, y, r, 0, 2 * PI)
+        c.stroke()
+
+
     #     # print(r)
     #     c = pygame.Surface((r * 2, r * 2), pygame.SRCALPHA)
     #     pygame.draw.circle(c, color, (r, r), r)
@@ -127,7 +134,13 @@ class Target:
     #         ),
     #     )
 
-    # def _draw_line(self, oldx, oldy, x, y, color, width):
+    def _draw_line(self, c, oldx, oldy, x, y, color, width):
+#        print(f"line from {oldx}, {oldy} to {x}, {y}")
+        c.move_to(oldx, oldy)
+        c.set_source_rgba(1,1,0,1)
+        c.line_to(x,y)
+        c.stroke()
+
     #     pygame.draw.line(
     #         self.surf,
     #         color,
@@ -362,6 +375,7 @@ class Target:
                 # not sure why that's needed
                 c.stroke()
         self._draw_trail(area, c, w, h, (CENTERX, CENTERY))
+        self._draw_shots(area, c, w, h, (CENTERX, CENTERY))
 
     # # offsets everything
     # def draw(self, area, c, w, h, data):
@@ -453,7 +467,7 @@ class Target:
         return r
         # return self.width / LG_RADIUS[-1] * r / 2.5
 
-    def draw_center(self, limit=0):
+    def draw_center(self, c, limit=0):
         oldx = None
         oldy = None
         i = 0
@@ -471,7 +485,7 @@ class Target:
                     + hex(min(255, i))[2:].zfill(2)
                     + hex(max(0, 255 - i))[2:].zfill(2)
                 )
-                self._draw_line(
+                self._draw_line(c, 
                     oldx // i, oldy // i, x // (i + 1), y // (i + 1), color, 3
                 )
                 oldx = x
@@ -481,11 +495,16 @@ class Target:
                 oldy = float(shot.shot["y"])
             i += 1
 
-    def draw_shots(self, sortme=False):
+#    def _draw_shots(self, sortme=False):
+    def _draw_shots(self, area, c, w, h, center_pos, sortme=False):
+        centerx, centery = center_pos
+
+        # sort if needed, so the inner shots are on top        
         if sortme:
             sorted_shots = sorted(self.shots, key=lambda x: x.teiler(), reverse=True)
         else:
             sorted_shots = self.shots
+
         # for shot in self.shots:
         n = 0
         oldts = 0
@@ -494,14 +513,14 @@ class Target:
                 waittime = min(500, (shot.date - oldts).total_seconds() * SPEED)
             else:
                 waittime = 0
-            pygame.time.wait(int(waittime))
-            pygame.display.flip()
+            #pygame.time.wait(int(waittime))
+            #pygame.display.flip()
             x = float(shot.shot["x"])
             y = float(shot.shot["y"])
             color = SHOT_COLOR[shot.full()]
-            self._draw_shot(x, y, color)
+            self._draw_shot(c, x, y, color)
             n += 1
-            self.draw_center(n)
+            self.draw_center(c, n)
             oldts = shot.date
 
     def add_shot(self, shot):
