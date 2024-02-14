@@ -27,6 +27,7 @@ from classes import camera
 
 # from classes import tracker
 from classes.lines import vec2d
+from classes.shots import Shot, Shots
 from classes import disag
 
 WEBCAM_INTERNAL = 0
@@ -34,7 +35,7 @@ WEBCAM_EXTERNAL = 4
 WEBCAM_OSST_FIRST = 4
 WEBCAM_OSST_SECOND = 6
 
-USE_DISAG = False
+USE_DISAG = True
 
 
 # script version
@@ -61,7 +62,7 @@ WEBCAM_SETTINGS_OSST_DEV = [1280, 960, 30, 2, "MJPG", 5, 48000]
 
 # SETTINGS - To change here
 WEBCAM_ID = 4
-WEBCAM_SETTINGS = WEBCAM_SETTINGS_EXTERNAL
+WEBCAM_SETTINGS = WEBCAM_SETTINGS_OSST_DEV
 
 
 # webcam settings indexes
@@ -139,6 +140,10 @@ class Osst:
         # start disag UDP broadcast listener
         self.disag_server = disag.DisagServer()
         self.disag_server.listen()
+
+        # TODO: change layout to allow a Shot to be fed by json,
+        #       instead have to go the roundtrip through Shots()
+#        self.shots = Shots()
 
         self.keep_running = True
         self.pause_capture = False
@@ -251,7 +256,7 @@ class Osst:
 
         # display circles
         pos, rad = self.camera.get_target()
-        print(f"rad from get_target(): {rad}")
+        # print(f"rad from get_target(): {rad}")
 
         if pos is not None:
             # adjust source scale from camera target radius
@@ -300,7 +305,7 @@ class Osst:
             )
 
         # ---- MAIN TARGET WINDOW
-        self.target_frame = self.target.draw()
+        self.target_frame = self.target.draw(draw_shots=True)
         self.screen.blit(
             self.target_frame,
             (0, 0),
@@ -344,7 +349,7 @@ class Osst:
         DEBUG_WINDOW_MIN_Y = 800
 
         fps_surf = self.get_text_box(
-            f"{round(self.fps)} fps | {self.fails_per_second}/{self.circles_per_second} det ko/ok  | {self.camera.hough_param1} H1 | gray_thres {self.camera.gray_threshold}\n resolution: {int(self.target.get_tracker_resolution())} mm/100 /pixel",
+            f"{round(self.fps)} fps | {self.fails_per_second}/{self.circles_per_second} det ko/ok | {self.target_center} |  resolution: {int(self.target.get_tracker_resolution())} mm/100 /pixel",
             15,
         )
         self.screen.blit(fps_surf, (DEBUG_WINDOW_MIN_X + 10, DEBUG_WINDOW_MIN_Y + 30))
@@ -396,6 +401,8 @@ class Osst:
                 elif event.key == pygame.K_SPACE:
                     # self.tracker.reset()
                     self.pause_capture = not self.pause_capture
+                elif event.key == pygame.K_r:
+                    self.target.reset_trail()
                 # blur pre-processing
                 elif event.key == pygame.K_b:
                     self.camera.blur = not self.camera.blur
@@ -456,10 +463,22 @@ class Osst:
                 print("Shot detected by camera!")
             if USE_DISAG and self.disag_server.data_received():
                 d = self.disag_server.get_data()
-                print("Disag server found shot")
+                print("Shot broadcast from DISAG Server!")
+                shot = Shot(d, json=True)
+                self.target.add_shot(shot)
+                # TODO: switch?
+                x,y = shot.pos()
+                #TODO: Center is currently pixel in image, so it can't be easily set by DISAG
+#                self.target_center = [x,y]
+
+                print(shot.pos())
+#                res = self.shots.add_json_shot(d)
+#                print(res, self.shots.shots)
+#                self.target.add_shot(self.shots.shots[-1])
+
 
             # read cameras
-            if not self.pause_capture:
+            if self.pause_capture is False:
                 if self.crop:
                     cam_read_success = self.camera.read(
                         (WEBCAM_CROP_WIDTH, WEBCAM_CROP_HEIGHT)
@@ -467,23 +486,23 @@ class Osst:
                 else:
                     cam_read_success = self.camera.read()
 
-            if not cam_read_success:
-                self.prep_exit(EXIT_NO_CAMERA)
-                break
+                if not cam_read_success:
+                    self.prep_exit(EXIT_NO_CAMERA)
+                    break
 
-            # detect circles
-            circle_found = self.camera.detect_circles()
-            if circle_found:
-                if self.target_center is not None:
-                    x = self.target_center[0] - self.camera.target_pos[0]
-                    y = self.target_center[1] - self.camera.target_pos[1]
-                    print(
-                        f"Target center: {self.target_center}, current pos: {self.camera.target_pos}, relative: [{x}, {y}]"
-                    )
-                    self.target.add_position([x, y])
-                detected_counter += 1
-            else:
-                fail_counter += 1
+                # detect circles
+                circle_found = self.camera.detect_circles()
+                if circle_found:
+                    if self.target_center is not None:
+                        x = self.target_center[0] - self.camera.target_pos[0]
+                        y = self.target_center[1] - self.camera.target_pos[1]
+                        # print(
+                        #     f"Target center: {self.target_center}, current pos: {self.camera.target_pos}, relative: [{x}, {y}]"
+                        # )
+                        self.target.add_position([x, y])
+                    detected_counter += 1
+                else:
+                    fail_counter += 1
 
             # --- maintenance
             self.draw()
